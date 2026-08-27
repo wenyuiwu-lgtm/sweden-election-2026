@@ -62,6 +62,21 @@ const PARTY_COLORS: Record<PartyCode, string> = {
 const SPECTRUM_ORDER: PartyCode[] = ["V", "MP", "S", "C", "L", "KD", "M", "SD"];
 const TABLE_PARTIES: PartyCode[] = ["S", "SD", "M", "V", "C", "KD", "MP", "L"];
 
+// Actual seats from the 2022 general election, i.e. the Riksdag sitting today —
+// a fixed baseline to compare the current poll-based projection against.
+const CURRENT_ELECTION_YEAR = 2022;
+const CURRENT_SEATS: Record<PartyCode, number> = {
+  S: 107,
+  SD: 73,
+  M: 68,
+  V: 24,
+  C: 24,
+  KD: 19,
+  MP: 18,
+  L: 16,
+  OTH: 0,
+};
+
 export default function Home() {
   const [latest, setLatest] = useState<PollOfPollsOutput | null>(null);
   const [trends, setTrends] = useState<PartyTrend[]>([]);
@@ -100,6 +115,8 @@ export default function Home() {
   }
 
   const { red_green_bloc, tido_bloc } = latest.bloc_summary;
+  const currentRedGreenSeats = red_green_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
+  const currentTidoSeats = tido_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
   const sortedTable = [...TABLE_PARTIES].sort(
     (a, b) => latest.parties[b].weighted_support - latest.parties[a].weighted_support
   );
@@ -143,12 +160,32 @@ export default function Home() {
         </p>
       </section>
 
-      {/* Bloc comparison */}
-      <section className="space-y-3">
-        <h2 className="font-serif-display text-lg font-semibold">Outcome Prediction</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <BlocCard label="Red-Green Bloc" parties="S · V · MP · C" seats={red_green_bloc.projected_seats} support={red_green_bloc.combined_support} color={PARTY_COLORS.S} />
-          <BlocCard label="Tidö Parties" parties="M · SD · KD · L" seats={tido_bloc.projected_seats} support={tido_bloc.combined_support} color={PARTY_COLORS.M} />
+      {/* Outcome Prediction */}
+      <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
+        <h2 className="font-serif-display text-lg font-semibold mb-4">Outcome Prediction</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-0 sm:divide-x sm:divide-border">
+          <BlocCard
+            label="Red-Green Bloc"
+            parties="S · V · MP · C"
+            seats={red_green_bloc.projected_seats}
+            support={red_green_bloc.combined_support}
+            color={PARTY_COLORS.S}
+          />
+          <BlocCard
+            label="Tidö Parties"
+            parties="M · SD · KD · L"
+            seats={tido_bloc.projected_seats}
+            support={tido_bloc.combined_support}
+            color={PARTY_COLORS.M}
+            className="sm:pl-6"
+          />
+        </div>
+        <div className="mt-5 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px]">
+          <span className="text-ink-faint">Current Riksdag ({CURRENT_ELECTION_YEAR} election)</span>
+          <span className="text-ink-muted">
+            Tidö parties <strong className="text-ink font-semibold">{currentTidoSeats}</strong> · Red-Green{" "}
+            <strong className="text-ink font-semibold">{currentRedGreenSeats}</strong>
+          </span>
         </div>
       </section>
 
@@ -385,10 +422,24 @@ export default function Home() {
   );
 }
 
-function BlocCard({ label, parties, seats, support, color }: { label: string; parties: string; seats: number; support: number; color: string }) {
+function BlocCard({
+  label,
+  parties,
+  seats,
+  support,
+  color,
+  className = "",
+}: {
+  label: string;
+  parties: string;
+  seats: number;
+  support: number;
+  color: string;
+  className?: string;
+}) {
   const majority = seats >= MAJORITY;
   return (
-    <div className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
+    <div className={className}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-[13px] text-ink-muted">
           <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />
