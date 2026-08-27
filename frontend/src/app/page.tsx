@@ -234,6 +234,18 @@ export default function Home() {
           </p>
         </div>
         <div>
+          <h3 className="font-semibold text-ink mb-1">Per-institute cap</h3>
+          <p>
+            Within the window, only each institute&rsquo;s 3 most recent polls are eligible — older ones
+            are dropped regardless of institution weight. Without this, an institute that simply publishes
+            more often than the others would accumulate a bigger share of the total purely from showing up
+            more times, not from being more informative. In practice this cap changes little day to day,
+            because the time-decay above already fades anything past a couple of publishing cycles to
+            near-nothing — it mainly exists as a safeguard against an institute publishing unusually often
+            in a short window.
+          </p>
+        </div>
+        <div>
           <h3 className="font-semibold text-ink mb-1">Time-decay weight</h3>
           <p>
             Each poll&rsquo;s influence decays exponentially: <code className="text-ink">exp(-ln(2) ×

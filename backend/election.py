@@ -82,6 +82,17 @@ INSTITUTION_HALF_LIFE_DAYS = {
     "SCB": 90.0,
 }
 
+# Cap on how many of each institute's most recent polls (within the window)
+# get included. Without this, an institute that simply publishes more often
+# than the others (e.g. Novus at 6 polls vs. SCB's 1 in a 180-day window)
+# accumulates a bigger share of the total weight purely from frequency, not
+# from being more informative -- Novus ended up at ~28% of total weight vs.
+# SCB's ~21% despite SCB's higher per-poll institution weight. Capping at 3
+# keeps a few recent polls per institute (still enough to show a trend and
+# smooth out one-off noise) without letting publication frequency alone
+# decide how much an institute counts.
+MAX_POLLS_PER_INSTITUTION = 3
+
 SWEDISH_PARTIES = {
     "S": "Socialdemokraterna",
     "SD": "Sverigedemokraterna",
@@ -181,6 +192,10 @@ class DatabaseIntegratedPipeline:
         窗口拉到 180 天是為了讓一年只發布 2 次的 SCB 進得來;高頻機構
         （Novus/Demoskop 等）就算被抓進這個較寬的窗口，也會被它們自己
         的 14 天半衰期壓到接近零，不會因此失真。
+
+        另外，每家機構最多只取最近 MAX_POLLS_PER_INSTITUTION 筆，避免發布
+        頻率高的機構單純因為「投票次數多」而拿到超額影響力（詳見該常數的
+        註解）。
         """
         try:
             response = self.supabase.table("raw_polls") \
@@ -189,15 +204,22 @@ class DatabaseIntegratedPipeline:
                 .execute()
 
             valid_polls = []
+            polls_per_pollster: Dict[str, int] = {}
             for row in response.data:
                 pub_date = datetime.strptime(row["publication_date"], "%Y-%m-%d").date()
                 days_diff = (self.target_date - pub_date).days
 
                 # 篩選窗口天數以內的合格數據
                 if 0 <= days_diff <= days:
+                    pollster = row["pollster"]
+                    # 已達該機構的上限（rows 依 publication_date desc 排序，
+                    # 所以先遇到的一定是較新的民調）
+                    if polls_per_pollster.get(pollster, 0) >= MAX_POLLS_PER_INSTITUTION:
+                        continue
+
                     entry = PollEntry(
                         poll_id=row["poll_id"],
-                        pollster=row["pollster"],
+                        pollster=pollster,
                         publisher=row.get("publisher", "N/A"),
                         fieldwork=Fieldwork(
                             start_date=row["start_date"],
@@ -209,8 +231,9 @@ class DatabaseIntegratedPipeline:
                         data=row["data"]
                     )
                     valid_polls.append(entry)
+                    polls_per_pollster[pollster] = polls_per_pollster.get(pollster, 0) + 1
 
-            logging.info(f"成功從資料庫讀取 {len(valid_polls)} 筆符合 {days} 天內的民調數據。")
+            logging.info(f"成功從資料庫讀取 {len(valid_polls)} 筆符合 {days} 天內、且未超過每機構 {MAX_POLLS_PER_INSTITUTION} 筆上限的民調數據。")
             return valid_polls
         except Exception as e:
             logging.error(f"從 raw_polls 讀取數據失敗: {e}")
