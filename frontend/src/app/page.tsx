@@ -30,7 +30,7 @@ const PARTY_COLORS: Record<PartyCode, string> = {
 };
 
 // Left-to-right on the seat bar, roughly matching the Riksdag's political spectrum.
-const SPECTRUM_ORDER: PartyCode[] = ["V", "S", "MP", "C", "L", "KD", "M", "SD"];
+const SPECTRUM_ORDER: PartyCode[] = ["V", "MP", "S", "C", "L", "KD", "M", "SD"];
 const TABLE_PARTIES: PartyCode[] = ["S", "SD", "M", "V", "C", "KD", "MP", "L"];
 
 export default function Home() {
