@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import { ThemeInit } from "@/components/ThemeInit";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -79,6 +80,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               rel="noopener noreferrer"
               className="flex items-center gap-2 shrink-0 hover:text-ink-muted"
             >
+              <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-sm bg-white">
+                <Image src="/cws-logo.png" alt="" width={20} height={20} className="h-full w-full object-cover" />
+              </span>
               Created by Christoffer W Studio
             </a>
           </div>

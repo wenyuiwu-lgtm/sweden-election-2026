@@ -253,23 +253,26 @@ export default function Home() {
             two fixed worked examples with the actual formulas filled in (these are illustrations, not
             today&rsquo;s live numbers).
           </p>
-          <p className="mt-2">
-            <strong className="text-ink">A recent poll from a biweekly institute:</strong> say Indikator
-            publishes a poll 4 days before the calculation date with 4,296 respondents. Institution weight
-            is only 1.0, but time-decay ≈ exp(-ln(2) × 4/14) ≈ 0.83 on its 14-day half-life, and sample
-            weight ≈ √(4,296/1,000) ≈ 2.07, giving a total weight of 1.0 × 0.83 × 2.07 ≈{" "}
-            <strong className="text-ink">1.7</strong> — higher than the institution weight alone would
-            suggest.
-          </p>
-          <p className="mt-2">
-            <strong className="text-ink">SCB, several months on:</strong> say SCB&rsquo;s poll is 91 days
-            old with 4,542 respondents. Institution weight is 1.5, and its own 90-day half-life gives
-            time-decay ≈ exp(-ln(2) × 91/90) ≈ 0.50 — about half faded, versus the ~1% it would have left
-            on the standard 14-day curve — with sample weight ≈ √(4,542/1,000) ≈ 2.13, for a total weight
-            of 1.5 × 0.50 × 2.13 ≈ <strong className="text-ink">1.6</strong>. That lands in the same range
-            as the much fresher Indikator poll above, despite being three months old — which is the whole
-            point of giving SCB its own half-life instead of excluding it or letting it decay to nothing.
-          </p>
+          <ul className="list-disc pl-5 space-y-1.5 mt-2">
+            <li>
+              <strong className="text-ink">A recent poll from a biweekly institute:</strong> say Indikator
+              publishes a poll 4 days before the calculation date with 4,296 respondents. Institution
+              weight is only 1.0, but time-decay ≈ exp(-ln(2) × 4/14) ≈ 0.83 on its 14-day half-life, and
+              sample weight ≈ √(4,296/1,000) ≈ 2.07, giving a total weight of 1.0 × 0.83 × 2.07 ≈{" "}
+              <strong className="text-ink">1.7</strong> — higher than the institution weight alone would
+              suggest.
+            </li>
+            <li>
+              <strong className="text-ink">SCB, several months on:</strong> say SCB&rsquo;s poll is 91
+              days old with 4,542 respondents. Institution weight is 1.5, and its own 90-day half-life
+              gives time-decay ≈ exp(-ln(2) × 91/90) ≈ 0.50 — about half faded, versus the ~1% it would
+              have left on the standard 14-day curve — with sample weight ≈ √(4,542/1,000) ≈ 2.13, for a
+              total weight of 1.5 × 0.50 × 2.13 ≈ <strong className="text-ink">1.6</strong>. That lands in
+              the same range as the much fresher Indikator poll above, despite being three months old —
+              which is the whole point of giving SCB its own half-life instead of excluding it or letting
+              it decay to nothing.
+            </li>
+          </ul>
         </div>
         <div>
           <h3 className="font-semibold text-ink mb-1">Seat allocation</h3>
