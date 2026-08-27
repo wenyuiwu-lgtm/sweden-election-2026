@@ -6,10 +6,10 @@ name: Update Poll of Polls
 # The "gate" step makes this a no-op after election day (2026-09-11) instead
 # of needing someone to remember to delete the workflow afterwards.
 
-on:
+"on":
   schedule:
     - cron: "0 6 * * 1" # every Monday, 06:00 UTC (08:00 CEST)
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   update-polls:
