@@ -32,8 +32,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <header className="border-b border-border">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent text-[13px] font-semibold text-white">
-                SE
+              <div className="h-7 w-11 shrink-0 overflow-hidden rounded-sm shadow-sm" aria-hidden="true">
+                <svg viewBox="0 0 16 10" className="h-full w-full" preserveAspectRatio="none">
+                  <rect width="16" height="10" fill="#006AA7" />
+                  <rect x="5" width="2" height="10" fill="#FECC00" />
+                  <rect y="4" width="16" height="2" fill="#FECC00" />
+                </svg>
               </div>
               <div className="leading-tight">
                 <div className="font-serif-display text-[15px] font-semibold">Poll of Polls</div>
@@ -55,7 +59,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </header>
         {children}
         <footer className="border-t border-border">
-          <div className="mx-auto w-full max-w-5xl px-4 py-6 text-[12px] leading-relaxed text-ink-faint">
+          <div className="mx-auto w-full max-w-5xl px-4 py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-[12px] leading-relaxed text-ink-faint">
             <p>
               Source data:{" "}
               <a
@@ -69,6 +73,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               . See the Methodology section above for the full weighting model. Not affiliated with any
               polling institute, party, or the Swedish Election Authority.
             </p>
+            <a
+              href="https://www.linkedin.com/company/cwsofficial"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 shrink-0 hover:text-ink-muted"
+            >
+              Created by Christoffer W Studio
+            </a>
           </div>
         </footer>
       </body>

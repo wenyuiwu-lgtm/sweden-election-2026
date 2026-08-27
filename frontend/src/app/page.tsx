@@ -160,6 +160,149 @@ export default function Home() {
         </p>
       </section>
 
+      {/* Methodology */}
+      <Disclosure title="Methodology: sources, sample, and weighting">
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Data sources</h3>
+          <p>
+            Polls are collected from six Swedish institutes: SCB, Novus, Demoskop, Ipsos, Verian, and
+            Indikator. Only polls with a disclosed sample size over 1,000 respondents are included; polls
+            without a verifiable sample size or methodology are excluded.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Per-institute cap</h3>
+          <p>
+            Within the window, only each institute&rsquo;s 3 most recent polls are eligible — older ones
+            are dropped regardless of institution weight. Without this, an institute that simply publishes
+            more often than the others would accumulate a bigger share of the total purely from showing up
+            more times, not from being more informative. In practice this cap changes little day to day,
+            because the time-decay above already fades anything past a couple of publishing cycles to
+            near-nothing — it mainly exists as a safeguard against an institute publishing unusually often
+            in a short window.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Time-decay weight</h3>
+          <p>
+            Each poll&rsquo;s influence decays exponentially: <code className="text-ink">exp(-ln(2) ×
+            days_old / half_life)</code>. Most institutes use a 14-day half-life, so a poll fielded two
+            weeks ago counts for half as much as one fielded today. SCB is the exception: it only
+            publishes about twice a year, so it uses a 90-day half-life instead — otherwise a 14-day
+            curve would fade a highly credible SCB poll to near-zero weight within a few months, rather
+            than aging it fairly.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Institution weight</h3>
+          <p>Institutes are weighted by real-world track record and methodology, not arbitrarily:</p>
+          <ul className="list-disc pl-5 space-y-1.5 mt-2">
+            <li>
+              <strong className="text-ink">SCB — 1.5.</strong> Sweden&rsquo;s national statistics office
+              runs nationally stratified random sampling with government-level resources, making it the
+              industry&rsquo;s accuracy benchmark. It also gets its own 90-day half-life (above) rather
+              than a bigger static weight, since the thing that sets it apart from the others isn&rsquo;t
+              just quality — it&rsquo;s that it only publishes twice a year.
+            </li>
+            <li>
+              <strong className="text-ink">Demoskop — 1.2.</strong> Smallest deviation from the actual
+              2022 result of the four institutes below — its final poll before that election missed the
+              8 parties&rsquo; vote shares by 0.40 percentage points on average.
+            </li>
+            <li>
+              <strong className="text-ink">Novus — 1.2.</strong> SVT&rsquo;s polling partner; runs very
+              large samples with strict randomized-sampling controls. Averaged 0.73 points off in its
+              final 2022 poll.
+            </li>
+            <li>
+              <strong className="text-ink">Ipsos — 1.1.</strong> Internationally recognized research
+              firm. Averaged 0.81 points off in its final 2022 poll.
+            </li>
+            <li>
+              <strong className="text-ink">Verian — 1.1.</strong> Published as Kantar Sifo in 2022,
+              since renamed; part of a large international research network with a long-established
+              methodology in the Swedish market. Averaged 1.14 points off under its former name in
+              2022 — the highest of the four we have a figure for, so it sits a tier below Demoskop
+              and Novus rather than alongside them, in line with Ipsos.
+            </li>
+            <li>
+              <strong className="text-ink">Indikator — 1.0.</strong> The baseline weight, and the
+              newest of the tracked institutes — it wasn&rsquo;t polling this race in 2022, so there&rsquo;s
+              no comparable track record yet to weight it up from the baseline.
+            </li>
+          </ul>
+          <p className="mt-2 text-[12px] text-ink-faint">
+            The four deviation figures above are our own calculation: each institute&rsquo;s final poll
+            published immediately before the 11 September 2022 election, compared party-by-party against
+            the official result, averaged across all 8 Riksdag parties. They&rsquo;re a rough guide from a
+            single election, not an official industry ranking.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Sample-size weight</h3>
+          <p>
+            Weight scales with the square root of sample size, so one very large poll can&rsquo;t
+            single-handedly dominate the average, while more reliable samples still count for more.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">How the three weights combine</h3>
+          <p>
+            A poll&rsquo;s total weight is the <em>product</em> of all three factors above — it&rsquo;s
+            easy to mistake the institution weight alone for a poll&rsquo;s overall influence, so here are
+            two fixed worked examples with the actual formulas filled in (these are illustrations, not
+            today&rsquo;s live numbers).
+          </p>
+          <p className="mt-2">
+            <strong className="text-ink">A recent poll from a biweekly institute:</strong> say Indikator
+            publishes a poll 4 days before the calculation date with 4,296 respondents. Institution weight
+            is only 1.0, but time-decay ≈ exp(-ln(2) × 4/14) ≈ 0.83 on its 14-day half-life, and sample
+            weight ≈ √(4,296/1,000) ≈ 2.07, giving a total weight of 1.0 × 0.83 × 2.07 ≈{" "}
+            <strong className="text-ink">1.7</strong> — higher than the institution weight alone would
+            suggest.
+          </p>
+          <p className="mt-2">
+            <strong className="text-ink">SCB, several months on:</strong> say SCB&rsquo;s poll is 91 days
+            old with 4,542 respondents. Institution weight is 1.5, and its own 90-day half-life gives
+            time-decay ≈ exp(-ln(2) × 91/90) ≈ 0.50 — about half faded, versus the ~1% it would have left
+            on the standard 14-day curve — with sample weight ≈ √(4,542/1,000) ≈ 2.13, for a total weight
+            of 1.5 × 0.50 × 2.13 ≈ <strong className="text-ink">1.6</strong>. That lands in the same range
+            as the much fresher Indikator poll above, despite being three months old — which is the whole
+            point of giving SCB its own half-life instead of excluding it or letting it decay to nothing.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Seat allocation</h3>
+          <p>
+            The {TOTAL_SEATS} Riksdag seats are distributed with the Sainte-Laguë method — the same
+            formula used in the real election — applied to every party clearing the 4% national threshold.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Margin of error</h3>
+          <p>
+            Shown per party as a 95% confidence interval, computed from the weighted support and an
+            effective sample size of 1,500.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Update schedule</h3>
+          <p>
+            Refreshed automatically every Monday until election day via a scheduled job that re-scrapes
+            the latest published polls. Full pipeline source is on{" "}
+            <a
+              href="https://github.com/wenyuiwu-lgtm/sweden-election-2026"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-border-strong underline-offset-2 hover:text-ink"
+            >
+              GitHub
+            </a>
+            .
+          </p>
+        </div>
+      </Disclosure>
+
       {/* Outcome Prediction */}
       <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
         <h2 className="font-serif-display text-lg font-semibold mb-4">Outcome Prediction</h2>
@@ -298,149 +441,6 @@ export default function Home() {
         </div>
       </section>
 
-
-      {/* Methodology */}
-      <Disclosure title="Methodology: sources, sample, and weighting">
-        <div>
-          <h3 className="font-semibold text-ink mb-1">Data sources</h3>
-          <p>
-            Polls are collected from six Swedish institutes: SCB, Novus, Demoskop, Ipsos, Verian, and
-            Indikator. Only polls with a disclosed sample size over 1,000 respondents are included; polls
-            without a verifiable sample size or methodology are excluded.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-semibold text-ink mb-1">Per-institute cap</h3>
-          <p>
-            Within the window, only each institute&rsquo;s 3 most recent polls are eligible — older ones
-            are dropped regardless of institution weight. Without this, an institute that simply publishes
-            more often than the others would accumulate a bigger share of the total purely from showing up
-            more times, not from being more informative. In practice this cap changes little day to day,
-            because the time-decay above already fades anything past a couple of publishing cycles to
-            near-nothing — it mainly exists as a safeguard against an institute publishing unusually often
-            in a short window.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-semibold text-ink mb-1">Time-decay weight</h3>
-          <p>
-            Each poll&rsquo;s influence decays exponentially: <code className="text-ink">exp(-ln(2) ×
-            days_old / half_life)</code>. Most institutes use a 14-day half-life, so a poll fielded two
-            weeks ago counts for half as much as one fielded today. SCB is the exception: it only
-            publishes about twice a year, so it uses a 90-day half-life instead — otherwise a 14-day
-            curve would fade a highly credible SCB poll to near-zero weight within a few months, rather
-            than aging it fairly.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-semibold text-ink mb-1">Institution weight</h3>
-          <p>Institutes are weighted by real-world track record and methodology, not arbitrarily:</p>
-          <ul className="list-disc pl-5 space-y-1.5 mt-2">
-            <li>
-              <strong className="text-ink">SCB — 1.5.</strong> Sweden&rsquo;s national statistics office
-              runs nationally stratified random sampling with government-level resources, making it the
-              industry&rsquo;s accuracy benchmark. It also gets its own 90-day half-life (above) rather
-              than a bigger static weight, since the thing that sets it apart from the others isn&rsquo;t
-              just quality — it&rsquo;s that it only publishes twice a year.
-            </li>
-            <li>
-              <strong className="text-ink">Demoskop — 1.2.</strong> Smallest deviation from the actual
-              2022 result of the four institutes below — its final poll before that election missed the
-              8 parties&rsquo; vote shares by 0.40 percentage points on average.
-            </li>
-            <li>
-              <strong className="text-ink">Novus — 1.2.</strong> SVT&rsquo;s polling partner; runs very
-              large samples with strict randomized-sampling controls. Averaged 0.73 points off in its
-              final 2022 poll.
-            </li>
-            <li>
-              <strong className="text-ink">Verian — 1.2.</strong> Published as Kantar Sifo in 2022,
-              since renamed; part of a large international research network with a long-established
-              methodology in the Swedish market. Averaged 1.14 points off under its former name in 2022 —
-              the highest of the four here, but still within normal polling error and part of why it sits
-              at the same weight as Demoskop and Novus rather than higher.
-            </li>
-            <li>
-              <strong className="text-ink">Ipsos — 1.1.</strong> Internationally recognized research
-              firm. Averaged 0.81 points off in its final 2022 poll.
-            </li>
-            <li>
-              <strong className="text-ink">Indikator — 1.0.</strong> The baseline weight, and the
-              newest of the tracked institutes — it wasn&rsquo;t polling this race in 2022, so there&rsquo;s
-              no comparable track record yet to weight it up from the baseline.
-            </li>
-          </ul>
-          <p className="mt-2 text-[12px] text-ink-faint">
-            The four deviation figures above are our own calculation: each institute&rsquo;s final poll
-            published immediately before the 11 September 2022 election, compared party-by-party against
-            the official result, averaged across all 8 Riksdag parties. They&rsquo;re a rough guide from a
-            single election, not an official industry ranking.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-semibold text-ink mb-1">Sample-size weight</h3>
-          <p>
-            Weight scales with the square root of sample size, so one very large poll can&rsquo;t
-            single-handedly dominate the average, while more reliable samples still count for more.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-semibold text-ink mb-1">How the three weights combine</h3>
-          <p>
-            A poll&rsquo;s total weight is the <em>product</em> of all three factors above — it&rsquo;s
-            easy to mistake the institution weight alone for a poll&rsquo;s overall influence, so here are
-            two fixed worked examples with the actual formulas filled in (these are illustrations, not
-            today&rsquo;s live numbers).
-          </p>
-          <p className="mt-2">
-            <strong className="text-ink">A recent poll from a biweekly institute:</strong> say Indikator
-            publishes a poll 4 days before the calculation date with 4,296 respondents. Institution weight
-            is only 1.0, but time-decay ≈ exp(-ln(2) × 4/14) ≈ 0.83 on its 14-day half-life, and sample
-            weight ≈ √(4,296/1,000) ≈ 2.07, giving a total weight of 1.0 × 0.83 × 2.07 ≈{" "}
-            <strong className="text-ink">1.7</strong> — higher than the institution weight alone would
-            suggest.
-          </p>
-          <p className="mt-2">
-            <strong className="text-ink">SCB, several months on:</strong> say SCB&rsquo;s poll is 91 days
-            old with 4,542 respondents. Institution weight is 1.5, and its own 90-day half-life gives
-            time-decay ≈ exp(-ln(2) × 91/90) ≈ 0.50 — about half faded, versus the ~1% it would have left
-            on the standard 14-day curve — with sample weight ≈ √(4,542/1,000) ≈ 2.13, for a total weight
-            of 1.5 × 0.50 × 2.13 ≈ <strong className="text-ink">1.6</strong>. That lands in the same range
-            as the much fresher Indikator poll above, despite being three months old — which is the whole
-            point of giving SCB its own half-life instead of excluding it or letting it decay to nothing.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-semibold text-ink mb-1">Seat allocation</h3>
-          <p>
-            The {TOTAL_SEATS} Riksdag seats are distributed with the Sainte-Laguë method — the same
-            formula used in the real election — applied to every party clearing the 4% national threshold.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-semibold text-ink mb-1">Margin of error</h3>
-          <p>
-            Shown per party as a 95% confidence interval, computed from the weighted support and an
-            effective sample size of 1,500.
-          </p>
-        </div>
-        <div>
-          <h3 className="font-semibold text-ink mb-1">Update schedule</h3>
-          <p>
-            Refreshed automatically every Monday until election day via a scheduled job that re-scrapes
-            the latest published polls. Full pipeline source is on{" "}
-            <a
-              href="https://github.com/wenyuiwu-lgtm/sweden-election-2026"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline decoration-border-strong underline-offset-2 hover:text-ink"
-            >
-              GitHub
-            </a>
-            .
-          </p>
-        </div>
-      </Disclosure>
     </main>
   );
 }

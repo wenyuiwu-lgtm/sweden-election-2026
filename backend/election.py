@@ -66,8 +66,8 @@ INSTITUTION_WEIGHTS = {
     "SCB": 1.5,
     "Demoskop": 1.2,
     "Novus": 1.2,
-    "Verian": 1.2,
     "Ipsos": 1.1,
+    "Verian": 1.1,
     "Indikator": 1.0
 }
 
