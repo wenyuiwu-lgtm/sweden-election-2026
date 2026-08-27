@@ -169,7 +169,11 @@ export default function Home() {
         </p>
         <p className="text-[13px] leading-relaxed text-ink-muted">
           This is not a forecast of the election outcome — it is a snapshot of where public opinion stood
-          over the last {latest.date_range_days} days, recalculated every time new polls are published.
+          over the last 45 days<sup>*</sup>, recalculated every time new polls are published.
+        </p>
+        <p className="text-[11px] leading-relaxed text-ink-faint">
+          * Except SCB, which only publishes about twice a year and is given a longer window so it
+          isn&rsquo;t excluded entirely — see Methodology below for the full explanation.
         </p>
       </section>
 
