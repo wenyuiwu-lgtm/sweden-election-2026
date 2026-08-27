@@ -17,6 +17,7 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://frontend-one-delta-qiasdszc81.vercel.app"),
   title: "2026 Swedish Election — Poll of Polls",
   description: "A weighted poll-of-polls dashboard for the 2026 Swedish general election",
 };
