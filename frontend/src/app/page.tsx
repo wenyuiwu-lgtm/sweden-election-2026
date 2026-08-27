@@ -11,6 +11,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { Countdown } from "@/components/Countdown";
+import { Disclosure } from "@/components/Disclosure";
 import { PartyCode, PartyTrend, PollOfPollsOutput } from "@/lib/types";
 
 const TOTAL_SEATS = 349;
@@ -37,7 +39,6 @@ export default function Home() {
   const [latest, setLatest] = useState<PollOfPollsOutput | null>(null);
   const [trends, setTrends] = useState<PartyTrend[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
-  const [daysToElection, setDaysToElection] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -47,11 +48,6 @@ export default function Home() {
     fetch("/api/v1/polls/trends")
       .then((res) => res.json())
       .then(setTrends);
-
-    // Reads the wall clock once at mount — a display-only value, not derived
-    // from props/state, so there's nothing to keep in sync afterwards.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setDaysToElection(Math.max(0, Math.ceil((ELECTION_DAY.getTime() - Date.now()) / 86_400_000)));
   }, []);
 
   if (loadFailed) {
@@ -79,17 +75,18 @@ export default function Home() {
   return (
     <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-10 space-y-10">
       {/* Hero */}
-      <section className="space-y-2">
-        <h1 className="font-serif-display text-3xl sm:text-4xl font-semibold tracking-tight">
-          Sweden 2026 — Poll of Polls
-        </h1>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ink-muted">
-          <span>{latest.total_polls_included} polls, last {latest.date_range_days} days</span>
-          <span className="text-border-strong">·</span>
-          <span>Updated {new Date(latest.updated_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
-          <span className="text-border-strong">·</span>
-          <span className="text-gold font-medium">{daysToElection ?? 0} days to election day</span>
+      <section className="space-y-4">
+        <div className="space-y-2">
+          <h1 className="font-serif-display text-3xl sm:text-4xl font-semibold tracking-tight">
+            Sweden 2026 — Poll of Polls
+          </h1>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ink-muted">
+            <span>{latest.total_polls_included} polls, last {latest.date_range_days} days</span>
+            <span className="text-border-strong">·</span>
+            <span>Updated {new Date(latest.updated_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
+          </div>
         </div>
+        <Countdown />
       </section>
 
       {/* Bloc comparison */}
@@ -206,6 +203,85 @@ export default function Home() {
           </ResponsiveContainer>
         </div>
       </section>
+
+      {/* Why a Poll of Polls */}
+      <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow space-y-3">
+        <h2 className="font-serif-display text-lg font-semibold">Why a Poll of Polls?</h2>
+        <p className="text-[13px] leading-relaxed text-ink-muted">
+          Any single poll carries a margin of error and can reflect one pollster&rsquo;s particular
+          methodology, or simply the mood of the specific week it was fielded. A Poll of Polls combines
+          results from several independent institutes into one weighted estimate, which smooths out
+          one-off swings and house effects that would otherwise look like real movement in public opinion.
+        </p>
+        <p className="text-[13px] leading-relaxed text-ink-muted">
+          This is not a forecast of the election outcome — it is a snapshot of where public opinion stood
+          over the last {latest.date_range_days} days, recalculated every time new polls are published.
+        </p>
+      </section>
+
+      {/* Methodology */}
+      <Disclosure title="Methodology: sources, sample, and weighting">
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Data sources</h3>
+          <p>
+            Polls are collected from six Swedish institutes: SCB, Novus, Demoskop, Ipsos, Verian, and
+            Indikator. Only polls with a disclosed sample size over 1,000 respondents are included; polls
+            without a verifiable sample size or methodology are excluded.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Time-decay weight</h3>
+          <p>
+            Each poll&rsquo;s influence decays on a 14-day half-life: <code className="text-ink">exp(-ln(2) ×
+            days_old / 14)</code>. A poll fielded two weeks ago counts for half as much as one fielded
+            today, so recent shifts in opinion aren&rsquo;t drowned out by older data.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Institution weight</h3>
+          <p>
+            Institutes are weighted by historical track record: SCB 1.5, Demoskop 1.2, Novus 1.2, Verian
+            1.2, Ipsos 1.1, Indikator 1.0.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Sample-size weight</h3>
+          <p>
+            Weight scales with the square root of sample size, so one very large poll can&rsquo;t
+            single-handedly dominate the average, while more reliable samples still count for more.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Seat allocation</h3>
+          <p>
+            The {TOTAL_SEATS} Riksdag seats are distributed with the Sainte-Laguë method — the same
+            formula used in the real election — applied to every party clearing the 4% national threshold.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Margin of error</h3>
+          <p>
+            Shown per party as a 95% confidence interval, computed from the weighted support and an
+            effective sample size of 1,500.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">Update schedule</h3>
+          <p>
+            Refreshed automatically every Monday until election day via a scheduled job that re-scrapes
+            the latest published polls. Full pipeline source is on{" "}
+            <a
+              href="https://github.com/wenyuiwu-lgtm/sweden-election-2026"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline decoration-border-strong underline-offset-2 hover:text-ink"
+            >
+              GitHub
+            </a>
+            .
+          </p>
+        </div>
+      </Disclosure>
     </main>
   );
 }

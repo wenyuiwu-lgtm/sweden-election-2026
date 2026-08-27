@@ -57,9 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="border-t border-border">
           <div className="mx-auto w-full max-w-5xl px-4 py-6 text-[12px] leading-relaxed text-ink-faint">
             <p>
-              Weighted using a 14-day time-decay, institution-reliability, and sample-size model over polls from
-              SCB, Novus, Demoskop, Ipsos, Verian, and Indikator. Seat projections use the Sainte-Laguë method
-              with a 4% threshold. Source data:{" "}
+              Source data:{" "}
               <a
                 href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Swedish_general_election"
                 target="_blank"
@@ -68,7 +66,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               >
                 Wikipedia
               </a>
-              . Not affiliated with any polling institute, party, or the Swedish Election Authority.
+              . See the Methodology section above for the full weighting model. Not affiliated with any
+              polling institute, party, or the Swedish Election Authority.
             </p>
           </div>
         </footer>
