@@ -19,6 +19,33 @@ const TOTAL_SEATS = 349;
 const MAJORITY = 175;
 const ELECTION_DAY = new Date("2026-09-11T00:00:00Z");
 
+// Matches .github/workflows/update-polls.yml: runs every Monday 06:00 UTC,
+// and stops entirely once the date passes this cutoff.
+const LAST_SCHEDULED_UPDATE_DATE = "2026-09-11";
+
+function formatNextUpdate(now: Date): string | null {
+  const day = now.getUTCDay(); // 0 = Sunday, 1 = Monday, ...
+  const daysUntilMonday = (1 - day + 7) % 7;
+  const candidate = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + daysUntilMonday, 6, 0, 0)
+  );
+  if (candidate.getTime() <= now.getTime()) {
+    candidate.setUTCDate(candidate.getUTCDate() + 7);
+  }
+  if (candidate.toISOString().slice(0, 10) > LAST_SCHEDULED_UPDATE_DATE) {
+    return null;
+  }
+  return (
+    candidate.toLocaleString("en-GB", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+    }) + " UTC"
+  );
+}
+
 const PARTY_COLORS: Record<PartyCode, string> = {
   S: "#E8112D",
   SD: "#C9A400",
@@ -39,6 +66,7 @@ export default function Home() {
   const [latest, setLatest] = useState<PollOfPollsOutput | null>(null);
   const [trends, setTrends] = useState<PartyTrend[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [nextUpdate, setNextUpdate] = useState<string | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -48,6 +76,11 @@ export default function Home() {
     fetch("/api/v1/polls/trends")
       .then((res) => res.json())
       .then(setTrends);
+
+    // Reads the wall clock once at mount — a display-only value, not derived
+    // from props/state, so there's nothing to keep in sync afterwards.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setNextUpdate(formatNextUpdate(new Date()));
   }, []);
 
   if (loadFailed) {
@@ -84,6 +117,12 @@ export default function Home() {
             <span>{latest.total_polls_included} polls, last {latest.date_range_days} days</span>
             <span className="text-border-strong">·</span>
             <span>Updated {new Date(latest.updated_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
+            {nextUpdate && (
+              <>
+                <span className="text-border-strong">·</span>
+                <span>Next update: {nextUpdate}</span>
+              </>
+            )}
           </div>
         </div>
         <Countdown />
