@@ -1,0 +1,49 @@
+name: Update Poll of Polls
+
+# Runs every Monday to re-scrape Wikipedia's opinion-polling page and refresh
+# the weighted Poll of Polls snapshot in Supabase.
+#
+# The "gate" step makes this a no-op after election day (2026-09-11) instead
+# of needing someone to remember to delete the workflow afterwards.
+
+on:
+  schedule:
+    - cron: "0 6 * * 1" # every Monday, 06:00 UTC (08:00 CEST)
+  workflow_dispatch: {}
+
+jobs:
+  update-polls:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check whether election day has passed
+        id: gate
+        run: |
+          election_day="2026-09-11"
+          today="$(date -u +%F)"
+          if [[ "$today" > "$election_day" ]]; then
+            echo "Election day ($election_day) has passed — skipping."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.proceed == 'true'
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: steps.gate.outputs.proceed == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        if: steps.gate.outputs.proceed == 'true'
+        run: pip install -r backend/requirements.txt
+
+      - name: Run scraper + pipeline
+        if: steps.gate.outputs.proceed == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python backend/scrape_wikipedia.py

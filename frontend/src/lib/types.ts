@@ -1,0 +1,41 @@
+// 對應 backend/election.py 的 PollOfPollsOutput 結構
+
+export type PartyCode = "S" | "SD" | "M" | "V" | "C" | "KD" | "MP" | "L" | "OTH";
+
+export interface PartyResult {
+  name: string;
+  weighted_support: number;
+  margin_of_error: number;
+  projected_seats: number;
+  threshold_passed: boolean;
+  pass_probability: number;
+}
+
+export interface BlocSummary {
+  parties: PartyCode[];
+  combined_support: number;
+  projected_seats: number;
+  has_majority: boolean;
+}
+
+export interface PollOfPollsOutput {
+  updated_at: string;
+  election_year: number;
+  total_polls_included: number;
+  date_range_days: number;
+  parties: Record<PartyCode, PartyResult>;
+  bloc_summary: {
+    red_green_bloc: BlocSummary;
+    tido_bloc: BlocSummary;
+  };
+}
+
+export interface TrendPoint {
+  date: string;
+  support: number;
+}
+
+export interface PartyTrend {
+  party: PartyCode;
+  points: TrendPoint[];
+}
