@@ -344,28 +344,38 @@ export default function Home() {
               just quality — it&rsquo;s that it only publishes twice a year.
             </li>
             <li>
-              <strong className="text-ink">Demoskop — 1.2.</strong> Historically the smallest average
-              deviation from actual election results among the institutes tracked here (~0.4%).
+              <strong className="text-ink">Demoskop — 1.2.</strong> Smallest deviation from the actual
+              2022 result of the four institutes below — its final poll before that election missed the
+              8 parties&rsquo; vote shares by 0.40 percentage points on average.
             </li>
             <li>
               <strong className="text-ink">Novus — 1.2.</strong> SVT&rsquo;s polling partner; runs very
-              large samples with strict randomized-sampling controls.
+              large samples with strict randomized-sampling controls. Averaged 0.73 points off in its
+              final 2022 poll.
             </li>
             <li>
-              <strong className="text-ink">Verian — 1.2.</strong> Formerly Kantar Sifo/Kantar Public;
-              part of a large international research network with a long-established methodology in the
-              Swedish market.
+              <strong className="text-ink">Verian — 1.2.</strong> Published as Kantar Sifo in 2022,
+              since renamed; part of a large international research network with a long-established
+              methodology in the Swedish market. Averaged 1.14 points off under its former name in 2022 —
+              the highest of the four here, but still within normal polling error and part of why it sits
+              at the same weight as Demoskop and Novus rather than higher.
             </li>
             <li>
               <strong className="text-ink">Ipsos — 1.1.</strong> Internationally recognized research
-              firm with a strong track record for stable, well-smoothed estimates.
+              firm. Averaged 0.81 points off in its final 2022 poll.
             </li>
             <li>
               <strong className="text-ink">Indikator — 1.0.</strong> The baseline weight, and the
-              newest of the tracked institutes — it hasn&rsquo;t built up the multi-election track
-              record the others have.
+              newest of the tracked institutes — it wasn&rsquo;t polling this race in 2022, so there&rsquo;s
+              no comparable track record yet to weight it up from the baseline.
             </li>
           </ul>
+          <p className="mt-2 text-[12px] text-ink-faint">
+            The four deviation figures above are our own calculation: each institute&rsquo;s final poll
+            published immediately before the 11 September 2022 election, compared party-by-party against
+            the official result, averaged across all 8 Riksdag parties. They&rsquo;re a rough guide from a
+            single election, not an official industry ranking.
+          </p>
         </div>
         <div>
           <h3 className="font-semibold text-ink mb-1">Sample-size weight</h3>
@@ -378,13 +388,26 @@ export default function Home() {
           <h3 className="font-semibold text-ink mb-1">How the three weights combine</h3>
           <p>
             A poll&rsquo;s total weight is the <em>product</em> of all three factors above — it&rsquo;s
-            easy to mistake the institution weight alone for a poll&rsquo;s overall influence, so here&rsquo;s
-            a worked example. An Indikator poll published 4 days ago with 4,296 respondents has an
-            institution weight of only 1.0, but combined with near-full recency (time-decay ≈ 0.83) and a
-            large sample (sample weight ≈ 2.07), its total weight comes out around <strong className="text-ink">1.7</strong> —
-            higher than the institution weight by itself would suggest, and on par with a 3-month-old SCB
-            poll weighted at 1.5 with its own 90-day decay applied. Recency and sample size can meaningfully
-            offset a lower institution weight, and vice versa.
+            easy to mistake the institution weight alone for a poll&rsquo;s overall influence, so here are
+            two fixed worked examples with the actual formulas filled in (these are illustrations, not
+            today&rsquo;s live numbers).
+          </p>
+          <p className="mt-2">
+            <strong className="text-ink">A recent poll from a biweekly institute:</strong> say Indikator
+            publishes a poll 4 days before the calculation date with 4,296 respondents. Institution weight
+            is only 1.0, but time-decay ≈ exp(-ln(2) × 4/14) ≈ 0.83 on its 14-day half-life, and sample
+            weight ≈ √(4,296/1,000) ≈ 2.07, giving a total weight of 1.0 × 0.83 × 2.07 ≈{" "}
+            <strong className="text-ink">1.7</strong> — higher than the institution weight alone would
+            suggest.
+          </p>
+          <p className="mt-2">
+            <strong className="text-ink">SCB, several months on:</strong> say SCB&rsquo;s poll is 91 days
+            old with 4,542 respondents. Institution weight is 1.5, and its own 90-day half-life gives
+            time-decay ≈ exp(-ln(2) × 91/90) ≈ 0.50 — about half faded, versus the ~1% it would have left
+            on the standard 14-day curve — with sample weight ≈ √(4,542/1,000) ≈ 2.13, for a total weight
+            of 1.5 × 0.50 × 2.13 ≈ <strong className="text-ink">1.6</strong>. That lands in the same range
+            as the much fresher Indikator poll above, despite being three months old — which is the whole
+            point of giving SCB its own half-life instead of excluding it or letting it decay to nothing.
           </p>
         </div>
         <div>
@@ -461,7 +484,17 @@ function BlocCard({
 function SeatBar({ latest }: { latest: PollOfPollsOutput }) {
   const majorityPct = (MAJORITY / TOTAL_SEATS) * 100;
   return (
-    <div className="relative pt-1 pb-5">
+    <div className="relative pt-5">
+      <span
+        className="absolute top-0 -translate-x-1/2 whitespace-nowrap text-[10px] text-ink-faint"
+        style={{ left: `${majorityPct}%` }}
+      >
+        {MAJORITY} for majority
+      </span>
+      <div
+        className="absolute top-5 bottom-0 w-px bg-ink/50"
+        style={{ left: `${majorityPct}%` }}
+      />
       <div className="flex w-full h-7 rounded-md overflow-hidden">
         {SPECTRUM_ORDER.filter((p) => latest.parties[p].projected_seats > 0).map((code) => {
           const seats = latest.parties[code].projected_seats;
@@ -477,19 +510,13 @@ function SeatBar({ latest }: { latest: PollOfPollsOutput }) {
           );
         })}
       </div>
-      <div
-        className="absolute top-0 bottom-3 w-px bg-ink"
-        style={{ left: `${majorityPct}%` }}
-      >
-        <span className="absolute -top-1 left-1.5 whitespace-nowrap text-[10px] text-ink-faint">175 for majority</span>
-      </div>
     </div>
   );
 }
 
 function Legend2() {
   return (
-    <div className="flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-ink-muted">
+    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5 text-[12px] text-ink-muted">
       {SPECTRUM_ORDER.map((code) => (
         <span key={code} className="flex items-center gap-1.5">
           <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: PARTY_COLORS[code] }} />
