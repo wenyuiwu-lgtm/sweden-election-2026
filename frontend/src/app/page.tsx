@@ -246,16 +246,57 @@ export default function Home() {
         </div>
         <div>
           <h3 className="font-semibold text-ink mb-1">Institution weight</h3>
-          <p>
-            Institutes are weighted by historical track record: SCB 1.5, Demoskop 1.2, Novus 1.2, Verian
-            1.2, Ipsos 1.1, Indikator 1.0.
-          </p>
+          <p>Institutes are weighted by real-world track record and methodology, not arbitrarily:</p>
+          <ul className="list-disc pl-5 space-y-1.5 mt-2">
+            <li>
+              <strong className="text-ink">SCB — 1.5.</strong> Sweden&rsquo;s national statistics office
+              runs nationally stratified random sampling with government-level resources, making it the
+              industry&rsquo;s accuracy benchmark. It also gets its own 90-day half-life (above) rather
+              than a bigger static weight, since the thing that sets it apart from the others isn&rsquo;t
+              just quality — it&rsquo;s that it only publishes twice a year.
+            </li>
+            <li>
+              <strong className="text-ink">Demoskop — 1.2.</strong> Historically the smallest average
+              deviation from actual election results among the institutes tracked here (~0.4%).
+            </li>
+            <li>
+              <strong className="text-ink">Novus — 1.2.</strong> SVT&rsquo;s polling partner; runs very
+              large samples with strict randomized-sampling controls.
+            </li>
+            <li>
+              <strong className="text-ink">Verian — 1.2.</strong> Formerly Kantar Sifo/Kantar Public;
+              part of a large international research network with a long-established methodology in the
+              Swedish market.
+            </li>
+            <li>
+              <strong className="text-ink">Ipsos — 1.1.</strong> Internationally recognized research
+              firm with a strong track record for stable, well-smoothed estimates.
+            </li>
+            <li>
+              <strong className="text-ink">Indikator — 1.0.</strong> The baseline weight, and the
+              newest of the tracked institutes — it hasn&rsquo;t built up the multi-election track
+              record the others have.
+            </li>
+          </ul>
         </div>
         <div>
           <h3 className="font-semibold text-ink mb-1">Sample-size weight</h3>
           <p>
             Weight scales with the square root of sample size, so one very large poll can&rsquo;t
             single-handedly dominate the average, while more reliable samples still count for more.
+          </p>
+        </div>
+        <div>
+          <h3 className="font-semibold text-ink mb-1">How the three weights combine</h3>
+          <p>
+            A poll&rsquo;s total weight is the <em>product</em> of all three factors above — it&rsquo;s
+            easy to mistake the institution weight alone for a poll&rsquo;s overall influence, so here&rsquo;s
+            a worked example. An Indikator poll published 4 days ago with 4,296 respondents has an
+            institution weight of only 1.0, but combined with near-full recency (time-decay ≈ 0.83) and a
+            large sample (sample weight ≈ 2.07), its total weight comes out around <strong className="text-ink">1.7</strong> —
+            higher than the institution weight by itself would suggest, and on par with a 3-month-old SCB
+            poll weighted at 1.5 with its own 90-day decay applied. Recency and sample size can meaningfully
+            offset a lower institution weight, and vice versa.
           </p>
         </div>
         <div>
