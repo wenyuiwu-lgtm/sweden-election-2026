@@ -1,6 +1,6 @@
 """
 2026 Swedish General Election - Complete DB-Integrated Pipeline
-整合 Supabase/PostgreSQL 寫入、去重、45天資料調取、Poll of Polls 加權計算與歷史結果存檔
+整合 Supabase/PostgreSQL 寫入、去重、近期資料調取、Poll of Polls 加權計算與歷史結果存檔
 """
 
 import os
@@ -52,7 +52,7 @@ class PollOfPollsOutput(BaseModel):
     updated_at: str
     election_year: int = 2026
     total_polls_included: int
-    date_range_days: int = 45
+    date_range_days: int
     parties: Dict[str, PartyResult]
     bloc_summary: Dict[str, BlocSummary]
 
@@ -68,6 +68,18 @@ INSTITUTION_WEIGHTS = {
     "Verian": 1.2,
     "Ipsos": 1.1,
     "Indikator": 1.0
+}
+
+# Time-decay half-life in days, per institution. The default (14 days) fits
+# pollsters that publish every 2-4 weeks. SCB only publishes twice a year, so
+# the same 14-day curve would decay it to ~1% weight within three months —
+# effectively discarding a highly credible poll rather than aging it fairly.
+# A 90-day half-life (roughly half of SCB's real ~180-day cycle) keeps a
+# 3-month-old SCB poll in the same ballpark as the newest weekly poll instead
+# of near zero, and self-corrects the next time SCB publishes.
+DEFAULT_HALF_LIFE_DAYS = 14.0
+INSTITUTION_HALF_LIFE_DAYS = {
+    "SCB": 90.0,
 }
 
 SWEDISH_PARTIES = {
@@ -163,9 +175,12 @@ class DatabaseIntegratedPipeline:
 
         return inserted_count
 
-    def fetch_recent_raw_polls(self, days: int = 45) -> List[PollEntry]:
+    def fetch_recent_raw_polls(self, days: int = 180) -> List[PollEntry]:
         """
-        抓取 publication_date 在最近 45 天內的合格 raw_polls 數據
+        抓取 publication_date 在最近 N 天內的合格 raw_polls 數據。
+        窗口拉到 180 天是為了讓一年只發布 2 次的 SCB 進得來;高頻機構
+        （Novus/Demoskop 等）就算被抓進這個較寬的窗口，也會被它們自己
+        的 14 天半衰期壓到接近零，不會因此失真。
         """
         try:
             response = self.supabase.table("raw_polls") \
@@ -178,7 +193,7 @@ class DatabaseIntegratedPipeline:
                 pub_date = datetime.strptime(row["publication_date"], "%Y-%m-%d").date()
                 days_diff = (self.target_date - pub_date).days
 
-                # 篩選 45 天以內的合格數據
+                # 篩選窗口天數以內的合格數據
                 if 0 <= days_diff <= days:
                     entry = PollEntry(
                         poll_id=row["poll_id"],
@@ -195,13 +210,13 @@ class DatabaseIntegratedPipeline:
                     )
                     valid_polls.append(entry)
 
-            logging.info(f"成功從資料庫讀取 {len(valid_polls)} 筆符合 45 天內的民調數據。")
+            logging.info(f"成功從資料庫讀取 {len(valid_polls)} 筆符合 {days} 天內的民調數據。")
             return valid_polls
         except Exception as e:
             logging.error(f"從 raw_polls 讀取數據失敗: {e}")
             return []
 
-    def calculate_poll_of_polls(self, raw_polls: List[PollEntry]) -> PollOfPollsOutput:
+    def calculate_poll_of_polls(self, raw_polls: List[PollEntry], date_range_days: int = 180) -> PollOfPollsOutput:
         """
         進行三重加權與席次算演
         """
@@ -212,9 +227,10 @@ class DatabaseIntegratedPipeline:
             pub_date = datetime.strptime(poll.fieldwork.publication_date, "%Y-%m-%d").date()
             days_diff = (self.target_date - pub_date).days
 
-            # 1. 時間指數衰減 (14天半衰期)
-            w_time = math.exp(-math.log(2) * (days_diff / 14.0))
-            
+            # 1. 時間指數衰減（半衰期依機構而定，見 INSTITUTION_HALF_LIFE_DAYS）
+            half_life = INSTITUTION_HALF_LIFE_DAYS.get(poll.pollster, DEFAULT_HALF_LIFE_DAYS)
+            w_time = math.exp(-math.log(2) * (days_diff / half_life))
+
             # 2. 機構公信力加權
             w_inst = INSTITUTION_WEIGHTS.get(poll.pollster, 1.0)
             
@@ -281,6 +297,7 @@ class DatabaseIntegratedPipeline:
         return PollOfPollsOutput(
             updated_at=datetime.now(timezone.utc).isoformat(),
             total_polls_included=len(raw_polls),
+            date_range_days=date_range_days,
             parties=party_results,
             bloc_summary=blocs
         )
@@ -292,6 +309,7 @@ class DatabaseIntegratedPipeline:
         record = {
             "calculation_date": self.target_date.strftime("%Y-%m-%d"),
             "total_polls_included": result.total_polls_included,
+            "date_range_days": result.date_range_days,
             "parties": {k: v.model_dump() for k, v in result.parties.items()},
             "bloc_summary": {k: v.model_dump() for k, v in result.bloc_summary.items()},
             "updated_at": result.updated_at
@@ -306,24 +324,24 @@ class DatabaseIntegratedPipeline:
             logging.error(f"存入 poll_of_polls_history 失敗: {e}")
         return False
 
-    def run(self, incoming_polls: List[PollEntry]):
+    def run(self, incoming_polls: List[PollEntry], date_range_days: int = 180):
         """
         完整 Pipeline 執行流程
         """
         logging.info("=== 開始執行 2026 瑞典民調 Pipeline ===")
-        
+
         # 1. 將新爬取數據寫入資料庫
         self.save_raw_polls(incoming_polls)
 
-        # 2. 讀取資料庫中最近 45 天的所有合格數據
-        recent_polls = self.fetch_recent_raw_polls(days=45)
+        # 2. 讀取資料庫中最近 N 天的所有合格數據
+        recent_polls = self.fetch_recent_raw_polls(days=date_range_days)
 
         if not recent_polls:
             logging.warning("沒有可用的近期民調數據，中斷運算。")
             return
 
         # 3. 進行加權運算與席次分配
-        result = self.calculate_poll_of_polls(recent_polls)
+        result = self.calculate_poll_of_polls(recent_polls, date_range_days=date_range_days)
 
         # 4. 將運算結果存入歷史紀錄表
         self.save_poll_of_polls_result(result)

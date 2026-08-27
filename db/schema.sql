@@ -23,6 +23,7 @@ create table if not exists poll_of_polls_history (
     id bigserial primary key,
     calculation_date date not null,
     total_polls_included integer not null,
+    date_range_days integer not null default 45,  -- 實際使用的窗口天數(依機構半衰期而定,見 election.py)
     parties jsonb not null,        -- { "S": { name, weighted_support, margin_of_error, projected_seats, threshold_passed, pass_probability }, ... }
     bloc_summary jsonb not null,   -- { "red_green_bloc": {...}, "tido_bloc": {...} }
     updated_at timestamptz not null,

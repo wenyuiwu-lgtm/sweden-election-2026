@@ -236,9 +236,12 @@ export default function Home() {
         <div>
           <h3 className="font-semibold text-ink mb-1">Time-decay weight</h3>
           <p>
-            Each poll&rsquo;s influence decays on a 14-day half-life: <code className="text-ink">exp(-ln(2) ×
-            days_old / 14)</code>. A poll fielded two weeks ago counts for half as much as one fielded
-            today, so recent shifts in opinion aren&rsquo;t drowned out by older data.
+            Each poll&rsquo;s influence decays exponentially: <code className="text-ink">exp(-ln(2) ×
+            days_old / half_life)</code>. Most institutes use a 14-day half-life, so a poll fielded two
+            weeks ago counts for half as much as one fielded today. SCB is the exception: it only
+            publishes about twice a year, so it uses a 90-day half-life instead — otherwise a 14-day
+            curve would fade a highly credible SCB poll to near-zero weight within a few months, rather
+            than aging it fairly.
           </p>
         </div>
         <div>
