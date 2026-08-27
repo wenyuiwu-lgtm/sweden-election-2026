@@ -27,7 +27,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${sourceSerif.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col bg-bg text-ink">
+      <body className="min-h-full flex flex-col bg-bg text-ink" suppressHydrationWarning>
         <ThemeInit />
         <header className="border-b border-border">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-4">
