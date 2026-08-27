@@ -1,4 +1,4 @@
-// 對應 backend/election.py 的 PollOfPollsOutput 結構
+// Mirrors backend/election.py's PollOfPollsOutput structure
 
 export type PartyCode = "S" | "SD" | "M" | "V" | "C" | "KD" | "MP" | "L" | "OTH";
 

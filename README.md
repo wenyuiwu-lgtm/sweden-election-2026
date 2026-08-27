@@ -1,63 +1,63 @@
-# 2026 瑞典大選 Poll of Polls 網站
+# 2026 Swedish Election — Poll of Polls
 
-一個追蹤 2026 年瑞典國會大選民調的網站:彙整多家機構民調、用加權模型算出「Poll of Polls」綜合支持率與預估席次,並用儀表板呈現。網站介面語言為英文(給國際讀者看),開發文件用繁體中文。
+A site tracking polls for the 2026 Swedish general election: aggregates polls from multiple institutes, runs a weighted model to produce a combined "Poll of Polls" support estimate and seat projection, and presents it on a dashboard. All documentation and code comments are in English.
 
-規劃來源:[Google Doc — 系統架構規劃](https://docs.google.com/document/d/1HfLm4MQ21yE6VfEISGLcVOFsL7pOt4ThCQDRSApaSJU/edit),完整整理見 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)。
+Planning source: [Google Doc — system architecture plan](https://docs.google.com/document/d/1HfLm4MQ21yE6VfEISGLcVOFsL7pOt4ThCQDRSApaSJU/edit); full write-up in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-## 資料夾結構
+## Folder structure
 
 ```
 sweden-election-2026/
 ├── docs/
-│   └── ARCHITECTURE.md      # 系統架構 & 開發階段規劃(對照 Google Doc)
+│   └── ARCHITECTURE.md      # System architecture & development-stage plan (mirrors the Google Doc)
 ├── db/
-│   └── schema.sql           # Supabase / PostgreSQL 資料表定義
+│   └── schema.sql           # Supabase / PostgreSQL table definitions
 ├── backend/
-│   ├── election.py          # 民調加權 Pipeline(去重寫入、45天取數、加權運算、席次分配)
-│   ├── scrape_wikipedia.py  # 從英文維基百科民調條目爬資料,餵進 election.py 的 Pipeline
+│   ├── election.py          # Poll-weighting pipeline (dedup writes, recency window, weighting, seat allocation)
+│   ├── scrape_wikipedia.py  # Scrapes the English Wikipedia polling article and feeds election.py's pipeline
 │   ├── requirements.txt
 │   └── .env.example
 ├── .github/workflows/
-│   └── update-polls.yml     # 排程:每週一自動重新爬取 + 寫入,9/11 大選日後自動停止
-└── frontend/                # Next.js + Tailwind + Recharts 儀表板(英文介面)
+│   └── update-polls.yml     # Schedule: re-scrapes + writes every Monday, auto-stops after election day (9/11)
+└── frontend/                # Next.js + Tailwind + Recharts dashboard
 ```
 
-## 目前狀態
+## Current status
 
-- [x] 專案資料夾與文件就位
-- [x] Supabase 專案已建立(新專案,獨立於 fika-app/svenska-app):`sweden-election-2026`,region `eu-north-1`
-- [x] `db/schema.sql` 已在該 Supabase 專案跑過:`raw_polls`、`poll_of_polls_history` 兩張表,RLS 只開放公開讀取
-- [x] 資料來源:爬取英文維基百科「[Opinion polling for the 2026 Swedish general election](https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Swedish_general_election)」條目(`backend/scrape_wikipedia.py`),已實測可解析出 32 筆 2026 年民調
-- [x] `election.py` 的機構清單依維基百科實際數據來源更新為 SCB、Novus、Demoskop、Ipsos、Verian、Indikator(原本只有前 4 家,Verian、Indikator 是目前這次大選週期報最勤的兩家,詳見下方「與原規劃的差異」)
-- [x] 已跑過完整流程(含真正透過 GitHub Actions 執行一次驗證過),資料庫裡有真實數據,前端已經接上、顯示真實數字
-- [x] 前端介面文案已全部英文化
-- [x] **排程自動化**:GitHub repo [wenyuiwu-lgtm/sweden-election-2026](https://github.com/wenyuiwu-lgtm/sweden-election-2026)(公開),`.github/workflows/update-polls.yml` 每週一 06:00 UTC 自動重新爬取 + 寫入,9/11 大選日之後會自動變成無動作(不用手動關閉,見下方說明)
-- [ ] AI 選情洞察生成器
+- [x] Project folders and docs in place
+- [x] Supabase project created (new project, separate from fika-app/svenska-app): `sweden-election-2026`, region `eu-north-1`
+- [x] `db/schema.sql` applied to that project: `raw_polls` and `poll_of_polls_history` tables, RLS grants public read only
+- [x] Data source: scrapes the English Wikipedia article "[Opinion polling for the 2026 Swedish general election](https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Swedish_general_election)" (`backend/scrape_wikipedia.py`), tested to correctly parse 32 polls from 2026
+- [x] `election.py`'s institute list was updated to match what's actually on Wikipedia: SCB, Novus, Demoskop, Ipsos, Verian, Indikator (originally only the first four; Verian and Indikator are the two most active pollsters this cycle — see "Deviations from the original plan" below)
+- [x] Full pipeline has been run end to end (including once for real via GitHub Actions); the database holds real data and the frontend is wired up and displaying it
+- [x] Frontend copy is fully in English
+- [x] **Scheduled automation**: public GitHub repo [wenyuiwu-lgtm/sweden-election-2026](https://github.com/wenyuiwu-lgtm/sweden-election-2026); `.github/workflows/update-polls.yml` re-scrapes and writes every Monday at 06:00 UTC, and becomes a no-op after election day (9/11) without needing to be manually disabled (see below)
+- [ ] AI-generated election-insight summaries
 
-## 與原規劃的差異(需要你知道)
+## Deviations from the original plan (worth knowing)
 
-1. **機構清單擴充**:原始 `election.py` 只允許 SCB、Novus、Demoskop、Ipsos 四家。但維基百科頁面顯示這次大選週期實際發布最頻繁的是 Novus、Demoskop、**Verian**(Kantar Sifo 改名後的公司)、**Indikator**,SCB 和 Ipsos 反而發布頻率較低。我把 Verian、Indikator 也加進 `ALLOWED_POLLSTERS` 和 `INSTITUTION_WEIGHTS`(給了中等權重 1.2 / 1.0),否則會漏掉大部分最新民調。這個權重是我暫定的,之後你想調整很歡迎。
-2. **爬蟲資料沒有「發布日期」欄位**:維基百科只給「調查執行期間」(fieldwork date range),沒有另外的發布日期,所以 `publication_date` 目前用 fieldwork 的結束日期代替(業界常見做法)。
-3. **走勢圖資料源**:走勢折線圖(Support Trend)目前是直接讀 `raw_polls`(每筆民調各政黨的原始數字隨時間變化),不是 `poll_of_polls_history` 的加權結果——因為每週的加權快照數量還太少,畫不出有意義的走勢。等 9/11 前累積幾週的快照後,可以考慮改成兩者並存(原始民調當背景散點、加權線當主要趨勢)。
-4. **`poll_of_polls_history` 沒有防重複寫入**:`election.py` 原本的 `save_poll_of_polls_result` 是單純 `insert`,同一天如果手動+排程各跑一次,會產生兩筆同一天的快照(我在測試時就遇到,已手動清掉重複的那筆)。正常情況下排程只會每週一自動跑一次,不會有這個問題;但如果你之後想手動補跑,记得這件事。
-5. **SCB 民調有自己的半衰期,窗口也從 45 天拉到 180 天**:SCB 一年只發布 2 次(不像 Novus/Demoskop 等每 2-4 週一次),原本的 45 天窗口 + 14 天半衰期會直接把 SCB 排除在外,或算進去也會被衰減到只剩 ~1% 權重,等於白算。改成:①資料窗口從 45 天拉到 180 天(這樣才抓得到半年一次的 SCB);②`INSTITUTION_HALF_LIFE_DAYS` 讓 SCB 單獨用 90 天半衰期(其他機構仍是 14 天)。抓進來的高頻機構舊民調不會因為窗口變寬而失真,因為它們自己的 14 天半衰期早就把 91 天以上的數據壓到接近零。這個決定是你跟我討論後定案的,細節看 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) 或前端頁面上的 Methodology 展開區塊。
-6. **每家機構上限 3 筆民調(`MAX_POLLS_PER_INSTITUTION`)**:窗口拉寬到 180 天後,發布勤的機構(例如 Novus 半年內發了 6 筆)會單純因為「投票次數多」而拿到比其他機構更高的加總權重——用實際數據驗證過:Novus 佔總權重 28.4%,比機構權重最高的 SCB(20.8%)還高。所以加了這個上限,每家機構在窗口內最多只算最近 3 筆,較舊的直接不算,不管機構權重多高。**老實跟你說:這次實測下來,加了上限後數字幾乎沒變**(Novus 28.4%→28.2%,S 黨支持率 31.41%→31.41%)——因為 14 天半衰期本來就已經把超過 2-3 個發布週期的舊民調壓到接近零,上限機制目前是「保險機制」大於「實際生效」,但如果哪天某機構突然短時間內密集發布很多筆,這個上限就會真的發揮作用。
+1. **Expanded institute list.** The original `election.py` only allowed SCB, Novus, Demoskop, and Ipsos. Wikipedia shows the institutes actually publishing most often this cycle are Novus, Demoskop, **Verian** (the renamed Kantar Sifo), and **Indikator**, with SCB and Ipsos publishing less frequently. I added Verian and Indikator to `ALLOWED_POLLSTERS` and `INSTITUTION_WEIGHTS` (mid-tier weights of 1.2 / 1.0), otherwise most recent polls would be dropped. These weights are provisional — happy to adjust them.
+2. **Scraped data has no "publication date" field.** Wikipedia only gives a fieldwork date range, not a separate publication date, so `publication_date` currently uses the fieldwork end date instead (a common industry convention).
+3. **Trend chart's data source.** The Support Trend line chart currently reads directly from `raw_polls` (each individual poll's raw per-party numbers over time), not the weighted results in `poll_of_polls_history` — there simply aren't enough weekly snapshots yet to draw a meaningful trend from those. Once a few weeks of snapshots accumulate before 9/11, it's worth considering both together (raw polls as background scatter, the weighted line as the primary trend).
+4. **`poll_of_polls_history` has no write-deduplication.** `election.py`'s original `save_poll_of_polls_result` is a plain `insert`; running it manually and via the schedule on the same day produces two snapshots for that day (I hit this while testing and manually removed the duplicate). This won't come up under normal weekly-schedule operation, but keep it in mind if you ever run it manually.
+5. **SCB gets its own half-life, and the window widened from 45 to 180 days.** SCB only publishes twice a year (unlike Novus/Demoskop etc., which publish every 2-4 weeks). The original 45-day window plus a flat 14-day half-life either excluded SCB entirely or decayed it to ~1% weight — effectively wasted effort. Changed to: ① widen the data window from 45 to 180 days (so a twice-yearly SCB poll can be reached at all); ② `INSTITUTION_HALF_LIFE_DAYS` gives SCB its own 90-day half-life (other institutes keep 14 days). Older polls from high-frequency institutes that now fall inside the wider window aren't distorting anything, because their own 14-day half-life already suppresses anything past ~91 days to near zero. This was decided together with you — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) or the site's own Methodology section for details.
+6. **Each institute capped at 3 polls (`MAX_POLLS_PER_INSTITUTION`).** After widening the window to 180 days, a high-frequency institute (e.g. Novus with 6 polls in half a year) would accumulate a higher total weight than others purely by publishing more often — verified with real data: Novus held 28.4% of total weight, higher than SCB's 20.8% despite SCB having the highest per-poll institution weight. This cap limits each institute to its 3 most recent polls in the window regardless of institution weight. **Honest caveat: in practice this barely moved the numbers** (Novus 28.4% → 28.2%, S support unchanged at 31.41%) — the 14-day half-life was already suppressing anything past 2-3 publishing cycles, so this cap is currently more of a safeguard than something with a measurable effect. It would matter if an institute ever published unusually often in a short window.
 
-## 下一步
+## Next steps
 
-1. AI 選情洞察生成器(每次 Pipeline 跑完後,產出約 300 字的英文選情摘要)
-2. 之後若想要走勢圖更準,可以考慮把排程頻率從「每週一次」改成更密集
+1. AI-generated election-insight summaries (a ~300-word English summary produced after each pipeline run)
+2. If the trend chart needs to be more precise, consider increasing the schedule frequency from weekly
 
-## GitHub Actions 排程說明
+## GitHub Actions schedule
 
-- Repo:[wenyuiwu-lgtm/sweden-election-2026](https://github.com/wenyuiwu-lgtm/sweden-election-2026)(公開)
-- Workflow:`.github/workflows/update-polls.yml`,每週一 06:00 UTC(台灣時間下午 2 點、瑞典夏令時間早上 8 點)自動跑 `backend/scrape_wikipedia.py`
-- **9/11 大選日後自動停止**:workflow 裡有一個日期檢查步驟,超過 2026-09-11 就會直接跳過所有步驟(不消耗你的 Actions 分鐘數,也不會再寫入資料庫),不需要你之後手動刪除或關閉這個 workflow
-- Secrets:`SUPABASE_URL`、`SUPABASE_KEY`(service role)已經設定在 repo 的 GitHub Actions Secrets 裡,不會顯示在程式碼或這份文件中
-- 想手動立即跑一次(不等週一),可以到 [Actions 頁面](https://github.com/wenyuiwu-lgtm/sweden-election-2026/actions/workflows/update-polls.yml) 點 **Run workflow**
+- Repo: [wenyuiwu-lgtm/sweden-election-2026](https://github.com/wenyuiwu-lgtm/sweden-election-2026) (public)
+- Workflow: `.github/workflows/update-polls.yml`, runs `backend/scrape_wikipedia.py` every Monday at 06:00 UTC (2pm Taiwan time, 8am Swedish summer time)
+- **Automatically stops after election day (9/11)**: the workflow has a date-check step that skips every remaining step once the date passes 2026-09-11 (doesn't consume Actions minutes and doesn't write to the database) — no need to manually delete or disable this workflow afterward
+- Secrets: `SUPABASE_URL` and `SUPABASE_KEY` (service role) are already set as GitHub Actions secrets on the repo; they don't appear in code or this document
+- To trigger a run immediately instead of waiting for Monday, go to the [Actions page](https://github.com/wenyuiwu-lgtm/sweden-election-2026/actions/workflows/update-polls.yml) and click **Run workflow**
 
-## 開發規範
+## Conventions
 
-- 網站介面:英文
-- 開發文件(README / ARCHITECTURE):繁體中文
-- 資料庫:與 fika-app / svenska-app 是不同的 Supabase 專案,不要共用金鑰或誤植到同一個 `.env`
+- Site interface: English
+- Documentation and code comments (README / ARCHITECTURE / inline comments): English
+- Database: a separate Supabase project from fika-app / svenska-app — don't share keys or mix them into the same `.env`

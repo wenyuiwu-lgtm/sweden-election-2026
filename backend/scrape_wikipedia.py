@@ -142,7 +142,7 @@ def scrape_wikipedia_polls(year: int = ELECTION_YEAR) -> List[PollEntry]:
 
     table = find_year_table(soup, year)
     if table is None:
-        logging.error(f"找不到 {year} 年的民調表格,Wikipedia 頁面結構可能已變動。")
+        logging.error(f"Could not find the {year} polling table; the Wikipedia page structure may have changed.")
         return []
 
     entries: List[PollEntry] = []
@@ -155,7 +155,7 @@ def scrape_wikipedia_polls(year: int = ELECTION_YEAR) -> List[PollEntry]:
 
         pollster_raw = _clean_text(cells[0])
         if not pollster_raw or "election" in pollster_raw.lower():
-            continue  # 跳過表頭列與「實際選舉結果」對照列
+            continue  # skip header rows and the "actual election result" reference row
 
         pollster = POLLSTER_ALIASES.get(pollster_raw, pollster_raw)
 
@@ -210,7 +210,7 @@ def scrape_wikipedia_polls(year: int = ELECTION_YEAR) -> List[PollEntry]:
             )
         )
 
-    logging.info(f"從 Wikipedia 解析出 {len(entries)} 筆民調,略過 {skipped} 筆格式無法解析的列。")
+    logging.info(f"Parsed {len(entries)} polls from Wikipedia, skipped {skipped} rows with unparseable formatting.")
     return entries
 
 
@@ -219,13 +219,13 @@ def main():
     parser.add_argument(
         "--target-date",
         default=datetime.now().strftime("%Y-%m-%d"),
-        help="Pipeline 的『今天』基準日(YYYY-MM-DD),用來算 45 天內數據與時間衰減。預設為執行當天。",
+        help="The pipeline's reference 'today' date (YYYY-MM-DD), used for the recency window and time-decay. Defaults to the run date.",
     )
     args = parser.parse_args()
 
     polls = scrape_wikipedia_polls()
     if not polls:
-        logging.warning("沒有抓到任何民調,中止。")
+        logging.warning("No polls were scraped; aborting.")
         return
 
     pipeline = DatabaseIntegratedPipeline(target_date=args.target_date)

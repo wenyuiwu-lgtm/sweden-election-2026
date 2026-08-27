@@ -1,6 +1,7 @@
 """
 2026 Swedish General Election - Complete DB-Integrated Pipeline
-整合 Supabase/PostgreSQL 寫入、去重、近期資料調取、Poll of Polls 加權計算與歷史結果存檔
+Handles Supabase/PostgreSQL writes, deduplication, recent-data retrieval,
+Poll of Polls weighted calculation, and historical result storage.
 """
 
 import os
@@ -14,11 +15,11 @@ from supabase import create_client, Client
 
 load_dotenv()
 
-# 設定 Logging 紀錄
+# Logging setup
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 # -------------------------------------------------------------------
-# 1. Pydantic 資料模型定義
+# 1. Pydantic data models
 # -------------------------------------------------------------------
 class Fieldwork(BaseModel):
     start_date: str
@@ -57,7 +58,7 @@ class PollOfPollsOutput(BaseModel):
     bloc_summary: Dict[str, BlocSummary]
 
 # -------------------------------------------------------------------
-# 2. 核心篩選與加權配置參數
+# 2. Core filtering and weighting configuration
 # -------------------------------------------------------------------
 ALLOWED_POLLSTERS = ["SCB", "Novus", "Demoskop", "Ipsos", "Verian", "Indikator"]
 
@@ -106,14 +107,14 @@ SWEDISH_PARTIES = {
 }
 
 # -------------------------------------------------------------------
-# 3. Sainte-Laguë 席次分配演算法
+# 3. Sainte-Laguë seat allocation algorithm
 # -------------------------------------------------------------------
 def calculate_sainte_lague_seats(party_supports: Dict[str, float], total_seats: int = 349) -> Dict[str, int]:
     eligible_parties = {
         p: supp for p, supp in party_supports.items()
         if p != "OTH" and supp >= 4.0
     }
-    
+
     seats_allocated = {p: 0 for p in party_supports.keys()}
     if not eligible_parties:
         return seats_allocated
@@ -121,13 +122,13 @@ def calculate_sainte_lague_seats(party_supports: Dict[str, float], total_seats: 
     quotients = []
     for party, support in eligible_parties.items():
         quotients.append((support / 1.4, party))
-        
+
     for _ in range(total_seats):
         quotients.sort(key=lambda x: x[0], reverse=True)
         best_quotient, winning_party = quotients[0]
-        
+
         seats_allocated[winning_party] += 1
-        
+
         next_divisor = 2 * seats_allocated[winning_party] + 1
         new_quotient = eligible_parties[winning_party] / next_divisor
         quotients[0] = (new_quotient, winning_party)
@@ -135,28 +136,29 @@ def calculate_sainte_lague_seats(party_supports: Dict[str, float], total_seats: 
     return seats_allocated
 
 # -------------------------------------------------------------------
-# 4. 資料庫整合 Pipeline 類別
+# 4. Database-integrated pipeline class
 # -------------------------------------------------------------------
 class DatabaseIntegratedPipeline:
     def __init__(self, target_date: str = "2026-08-27"):
         url = os.environ.get("SUPABASE_URL")
         key = os.environ.get("SUPABASE_KEY")
-        
+
         if not url or not key:
-            raise ValueError("未設定 SUPABASE_URL 或 SUPABASE_KEY 環境變數。")
-            
+            raise ValueError("SUPABASE_URL or SUPABASE_KEY environment variable is not set.")
+
         self.supabase: Client = create_client(url, key)
         self.target_date = datetime.strptime(target_date, "%Y-%m-%d").date()
 
     def save_raw_polls(self, raw_polls: List[PollEntry]) -> int:
         """
-        將爬蟲抓到的新民調寫入 raw_polls 表 (依據 poll_id 去重，若已存在則忽略)
+        Writes newly scraped polls into the raw_polls table
+        (deduplicated on poll_id; existing rows are left untouched).
         """
         inserted_count = 0
         for poll in raw_polls:
-            # 檢查機構與樣本數硬性門檻
+            # Enforce the institute allowlist and minimum sample size
             if poll.pollster not in ALLOWED_POLLSTERS or poll.sample_size <= 1000:
-                logging.info(f"跳過不符合標準的民調: {poll.poll_id} ({poll.pollster}, N={poll.sample_size})")
+                logging.info(f"Skipping poll that fails quality bar: {poll.poll_id} ({poll.pollster}, N={poll.sample_size})")
                 continue
 
             record = {
@@ -173,29 +175,31 @@ class DatabaseIntegratedPipeline:
             }
 
             try:
-                # 使用 upsert 搭配 on_conflict="poll_id" 進行去重寫入
+                # Upsert with on_conflict="poll_id" for deduplication
                 response = self.supabase.table("raw_polls").upsert(
                     record, on_conflict="poll_id", ignore_duplicates=True
                 ).execute()
-                
+
                 if response.data:
                     inserted_count += 1
-                    logging.info(f"成功寫入或更新原始民調: {poll.poll_id}")
+                    logging.info(f"Successfully wrote/updated raw poll: {poll.poll_id}")
             except Exception as e:
-                logging.error(f"寫入 raw_polls 失敗 ({poll.poll_id}): {e}")
+                logging.error(f"Failed to write to raw_polls ({poll.poll_id}): {e}")
 
         return inserted_count
 
     def fetch_recent_raw_polls(self, days: int = 180) -> List[PollEntry]:
         """
-        抓取 publication_date 在最近 N 天內的合格 raw_polls 數據。
-        窗口拉到 180 天是為了讓一年只發布 2 次的 SCB 進得來;高頻機構
-        （Novus/Demoskop 等）就算被抓進這個較寬的窗口，也會被它們自己
-        的 14 天半衰期壓到接近零，不會因此失真。
+        Fetches qualifying raw_polls rows with a publication_date within the
+        last N days. The window is 180 days so that SCB, which only publishes
+        twice a year, can be reached at all; high-frequency institutes
+        (Novus, Demoskop, etc.) that happen to fall inside this wider window
+        still get suppressed to near-zero by their own 14-day half-life, so
+        widening the window doesn't distort their contribution.
 
-        另外，每家機構最多只取最近 MAX_POLLS_PER_INSTITUTION 筆，避免發布
-        頻率高的機構單純因為「投票次數多」而拿到超額影響力（詳見該常數的
-        註解）。
+        Additionally, each institute is capped at its MAX_POLLS_PER_INSTITUTION
+        most recent polls, so a high-frequency institute can't gain outsized
+        influence purely by publishing more often (see that constant's comment).
         """
         try:
             response = self.supabase.table("raw_polls") \
@@ -209,11 +213,11 @@ class DatabaseIntegratedPipeline:
                 pub_date = datetime.strptime(row["publication_date"], "%Y-%m-%d").date()
                 days_diff = (self.target_date - pub_date).days
 
-                # 篩選窗口天數以內的合格數據
+                # Filter to qualifying data within the window
                 if 0 <= days_diff <= days:
                     pollster = row["pollster"]
-                    # 已達該機構的上限（rows 依 publication_date desc 排序，
-                    # 所以先遇到的一定是較新的民調）
+                    # Already at this institute's cap (rows are ordered by
+                    # publication_date desc, so earlier hits are always newer)
                     if polls_per_pollster.get(pollster, 0) >= MAX_POLLS_PER_INSTITUTION:
                         continue
 
@@ -233,15 +237,15 @@ class DatabaseIntegratedPipeline:
                     valid_polls.append(entry)
                     polls_per_pollster[pollster] = polls_per_pollster.get(pollster, 0) + 1
 
-            logging.info(f"成功從資料庫讀取 {len(valid_polls)} 筆符合 {days} 天內、且未超過每機構 {MAX_POLLS_PER_INSTITUTION} 筆上限的民調數據。")
+            logging.info(f"Fetched {len(valid_polls)} polls within {days} days, capped at {MAX_POLLS_PER_INSTITUTION} per institute.")
             return valid_polls
         except Exception as e:
-            logging.error(f"從 raw_polls 讀取數據失敗: {e}")
+            logging.error(f"Failed to read from raw_polls: {e}")
             return []
 
     def calculate_poll_of_polls(self, raw_polls: List[PollEntry], date_range_days: int = 180) -> PollOfPollsOutput:
         """
-        進行三重加權與席次算演
+        Runs the three-factor weighting and seat-allocation calculation.
         """
         weighted_sums = {p: 0.0 for p in SWEDISH_PARTIES.keys()}
         total_weights = {p: 0.0 for p in SWEDISH_PARTIES.keys()}
@@ -250,14 +254,14 @@ class DatabaseIntegratedPipeline:
             pub_date = datetime.strptime(poll.fieldwork.publication_date, "%Y-%m-%d").date()
             days_diff = (self.target_date - pub_date).days
 
-            # 1. 時間指數衰減（半衰期依機構而定，見 INSTITUTION_HALF_LIFE_DAYS）
+            # 1. Time-decay (half-life depends on institution; see INSTITUTION_HALF_LIFE_DAYS)
             half_life = INSTITUTION_HALF_LIFE_DAYS.get(poll.pollster, DEFAULT_HALF_LIFE_DAYS)
             w_time = math.exp(-math.log(2) * (days_diff / half_life))
 
-            # 2. 機構公信力加權
+            # 2. Institution-reliability weight
             w_inst = INSTITUTION_WEIGHTS.get(poll.pollster, 1.0)
-            
-            # 3. 樣本數開根號加權
+
+            # 3. Sample-size (square-root) weight
             w_sample = math.sqrt(poll.sample_size / 1000.0)
 
             w_total = w_time * w_inst * w_sample
@@ -267,20 +271,20 @@ class DatabaseIntegratedPipeline:
                     weighted_sums[party] += support * w_total
                     total_weights[party] += w_total
 
-        # 彙整支持率
+        # Aggregate support figures
         final_supports = {}
         for party in SWEDISH_PARTIES.keys():
             final_supports[party] = round(weighted_sums[party] / total_weights[party], 2) if total_weights[party] > 0 else 0.0
 
-        # 計算國會席次
+        # Calculate parliamentary seats
         seats = calculate_sainte_lague_seats(final_supports, total_seats=349)
 
-        # 構建政黨結果
+        # Build per-party results
         party_results = {}
         for party_code, name in SWEDISH_PARTIES.items():
             supp = final_supports[party_code]
             passed = supp >= 4.0 if party_code != "OTH" else False
-            
+
             pass_prob = 0.0 if party_code == "OTH" else (100.0 if supp >= 4.5 else round(1 / (1 + math.exp(-3.5 * (supp - 4.0))) * 100, 1))
             moe = round(1.96 * math.sqrt((supp * (100 - supp)) / 1500), 2) if supp > 0 else 0.0
 
@@ -293,7 +297,7 @@ class DatabaseIntegratedPipeline:
                 pass_probability=pass_prob
             )
 
-        # 陣營彙整
+        # Aggregate blocs
         red_green_parties = ["S", "V", "MP", "C"]
         tido_parties = ["M", "SD", "KD", "L"]
 
@@ -327,7 +331,7 @@ class DatabaseIntegratedPipeline:
 
     def save_poll_of_polls_result(self, result: PollOfPollsOutput) -> bool:
         """
-        將加權結果存入 poll_of_polls_history 表
+        Writes the weighted result into the poll_of_polls_history table.
         """
         record = {
             "calculation_date": self.target_date.strftime("%Y-%m-%d"),
@@ -341,33 +345,33 @@ class DatabaseIntegratedPipeline:
         try:
             response = self.supabase.table("poll_of_polls_history").insert(record).execute()
             if response.data:
-                logging.info(f"成功存入 poll_of_polls_history (日期: {self.target_date})")
+                logging.info(f"Successfully saved to poll_of_polls_history (date: {self.target_date})")
                 return True
         except Exception as e:
-            logging.error(f"存入 poll_of_polls_history 失敗: {e}")
+            logging.error(f"Failed to save to poll_of_polls_history: {e}")
         return False
 
     def run(self, incoming_polls: List[PollEntry], date_range_days: int = 180):
         """
-        完整 Pipeline 執行流程
+        Runs the full pipeline end to end.
         """
-        logging.info("=== 開始執行 2026 瑞典民調 Pipeline ===")
+        logging.info("=== Starting 2026 Swedish election poll pipeline ===")
 
-        # 1. 將新爬取數據寫入資料庫
+        # 1. Write newly scraped data to the database
         self.save_raw_polls(incoming_polls)
 
-        # 2. 讀取資料庫中最近 N 天的所有合格數據
+        # 2. Read all qualifying data from the last N days
         recent_polls = self.fetch_recent_raw_polls(days=date_range_days)
 
         if not recent_polls:
-            logging.warning("沒有可用的近期民調數據，中斷運算。")
+            logging.warning("No recent poll data available; aborting calculation.")
             return
 
-        # 3. 進行加權運算與席次分配
+        # 3. Run the weighting calculation and seat allocation
         result = self.calculate_poll_of_polls(recent_polls, date_range_days=date_range_days)
 
-        # 4. 將運算結果存入歷史紀錄表
+        # 4. Save the result to the history table
         self.save_poll_of_polls_result(result)
-        
-        logging.info("=== Pipeline 執行完畢 ===")
+
+        logging.info("=== Pipeline run complete ===")
         return result
