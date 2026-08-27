@@ -47,6 +47,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </div>
             <div className="flex items-center gap-3">
               <a
+                href="https://www.linkedin.com/company/cwsofficial"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Christoffer W Studio"
+                className="flex h-6 w-6 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-white shadow-sm"
+              >
+                <Image src="/cws-logo.png" alt="" width={24} height={24} className="h-full w-full object-cover" />
+              </a>
+              <a
                 href="https://github.com/wenyuiwu-lgtm/sweden-election-2026"
                 target="_blank"
                 rel="noopener noreferrer"
@@ -62,7 +71,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="border-t border-border">
           <div className="mx-auto w-full max-w-5xl px-4 py-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-[12px] leading-relaxed text-ink-faint">
             <p>
-              Source data:{" "}
+              This website is provided for informational purposes only and does not constitute a
+              forecast, endorsement, or official result. All raw polling data is sourced from third
+              parties —{" "}
               <a
                 href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Swedish_general_election"
                 target="_blank"
@@ -70,9 +81,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 className="underline decoration-border-strong underline-offset-2 hover:text-ink-muted"
               >
                 Wikipedia
-              </a>
-              . See the Methodology section above for the full weighting model. Not affiliated with any
-              polling institute, party, or the Swedish Election Authority.
+              </a>{" "}
+              — and has not been independently verified by us. See the Methodology section above for the
+              full weighting model. Not affiliated with any polling institute, party, or the Swedish
+              Election Authority.
             </p>
             <a
               href="https://www.linkedin.com/company/cwsofficial"
