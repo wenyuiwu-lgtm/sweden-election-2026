@@ -39,3 +39,17 @@ export interface PartyTrend {
   party: PartyCode;
   points: TrendPoint[];
 }
+
+export interface RawPoll {
+  pollster: string;
+  start_date: string;
+  end_date: string;
+  publication_date: string;
+  sample_size: number;
+  data: Partial<Record<PartyCode, number>>;
+}
+
+export interface PollsterGroup {
+  pollster: string;
+  polls: RawPoll[];
+}

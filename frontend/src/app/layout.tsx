@@ -78,10 +78,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               href="https://www.linkedin.com/company/cwsofficial"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 shrink-0 hover:text-ink-muted"
+              className="flex items-center gap-2.5 shrink-0 text-[13px] font-medium text-ink-muted hover:text-ink"
             >
-              <span className="flex h-5 w-5 items-center justify-center overflow-hidden rounded-sm bg-white">
-                <Image src="/cws-logo.png" alt="" width={20} height={20} className="h-full w-full object-cover" />
+              <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-md bg-white shadow-sm">
+                <Image src="/cws-logo.png" alt="" width={36} height={36} className="h-full w-full object-cover" />
               </span>
               Created by Christoffer W Studio
             </a>

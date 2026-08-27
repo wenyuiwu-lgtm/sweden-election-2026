@@ -13,7 +13,16 @@ import {
 } from "recharts";
 import { Countdown } from "@/components/Countdown";
 import { Disclosure } from "@/components/Disclosure";
-import { PartyCode, PartyTrend, PollOfPollsOutput } from "@/lib/types";
+import { MAX_POLLS_PER_INSTITUTION } from "@/lib/constants";
+import { PartyCode, PartyTrend, PollOfPollsOutput, PollsterGroup } from "@/lib/types";
+
+function formatFieldwork(start: string, end: string): string {
+  const format = (iso: string) =>
+    new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+  const startStr = format(start);
+  const endStr = format(end);
+  return startStr === endStr ? startStr : `${startStr} – ${endStr}`;
+}
 
 const TOTAL_SEATS = 349;
 const MAJORITY = 175;
@@ -80,6 +89,7 @@ const CURRENT_SEATS: Record<PartyCode, number> = {
 export default function Home() {
   const [latest, setLatest] = useState<PollOfPollsOutput | null>(null);
   const [trends, setTrends] = useState<PartyTrend[]>([]);
+  const [rawPolls, setRawPolls] = useState<PollsterGroup[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
   const [nextUpdate, setNextUpdate] = useState<string | null>(null);
 
@@ -91,6 +101,9 @@ export default function Home() {
     fetch("/api/v1/polls/trends")
       .then((res) => res.json())
       .then(setTrends);
+    fetch("/api/v1/polls/raw")
+      .then((res) => res.json())
+      .then(setRawPolls);
 
     // Reads the wall clock once at mount — a display-only value, not derived
     // from props/state, so there's nothing to keep in sync afterwards.
@@ -401,7 +414,10 @@ export default function Home() {
       {/* Trend chart */}
       <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
         <h2 className="font-serif-display text-lg font-semibold mb-1">Support Trend</h2>
-        <p className="text-[12px] text-ink-faint mb-4">Individual poll results by party, {ELECTION_DAY.getFullYear()}</p>
+        <p className="text-[12px] text-ink-faint mb-4">
+          Raw numbers as published by each institute, {ELECTION_DAY.getFullYear()} — not the weighted
+          average shown in Party Support above, so the latest point per party won&rsquo;t match it exactly.
+        </p>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
@@ -444,6 +460,55 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Raw poll data */}
+      <Disclosure title="Individual poll data by institute">
+        <p>
+          The most recent {MAX_POLLS_PER_INSTITUTION} polls per institute that feed into the weighted
+          model above — the same cap described in Methodology. SCB publishes only twice a year, so it
+          currently shows just its one qualifying poll from late May.
+        </p>
+        <div className="space-y-5 mt-3">
+          {rawPolls.map((group) => (
+            <div key={group.pollster}>
+              <h3 className="font-semibold text-ink mb-1.5">{group.pollster}</h3>
+              <div className="overflow-x-auto">
+                <table className="w-full text-[11px] whitespace-nowrap">
+                  <thead>
+                    <tr className="text-ink-faint uppercase tracking-wide border-b border-border">
+                      <th className="text-left py-1 pr-3 font-medium">Fieldwork</th>
+                      <th className="text-right py-1 px-2 font-medium">Sample</th>
+                      {TABLE_PARTIES.map((p) => (
+                        <th key={p} className="text-right py-1 px-2 font-medium">
+                          {p}
+                        </th>
+                      ))}
+                      <th className="text-right py-1 pl-2 font-medium">Oth.</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.polls.map((poll) => (
+                      <tr key={poll.publication_date} className="border-b border-border last:border-0">
+                        <td className="py-1 pr-3 text-ink">{formatFieldwork(poll.start_date, poll.end_date)}</td>
+                        <td className="text-right py-1 px-2 tabular-nums text-ink-muted">
+                          {poll.sample_size.toLocaleString("en-GB")}
+                        </td>
+                        {TABLE_PARTIES.map((p) => (
+                          <td key={p} className="text-right py-1 px-2 tabular-nums">
+                            {poll.data[p] !== undefined ? poll.data[p]!.toFixed(1) : "—"}
+                          </td>
+                        ))}
+                        <td className="text-right py-1 pl-2 tabular-nums text-ink-faint">
+                          {poll.data.OTH !== undefined ? poll.data.OTH!.toFixed(1) : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Disclosure>
     </main>
   );
 }
