@@ -23,7 +23,7 @@ const PARTY_COLORS: Record<PartyCode, string> = {
   S: "#E8112D",
   SD: "#C9A400",
   M: "#52BDEC",
-  V: "#DA291C",
+  V: "#7A1220",
   C: "#009933",
   KD: "#1F2E7A",
   MP: "#6FB52C",
@@ -89,10 +89,28 @@ export default function Home() {
         <Countdown />
       </section>
 
+      {/* Why a Poll of Polls */}
+      <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow space-y-3">
+        <h2 className="font-serif-display text-lg font-semibold">Why a Poll of Polls?</h2>
+        <p className="text-[13px] leading-relaxed text-ink-muted">
+          Any single poll carries a margin of error and can reflect one pollster&rsquo;s particular
+          methodology, or simply the mood of the specific week it was fielded. A Poll of Polls combines
+          results from several independent institutes into one weighted estimate, which smooths out
+          one-off swings and house effects that would otherwise look like real movement in public opinion.
+        </p>
+        <p className="text-[13px] leading-relaxed text-ink-muted">
+          This is not a forecast of the election outcome — it is a snapshot of where public opinion stood
+          over the last {latest.date_range_days} days, recalculated every time new polls are published.
+        </p>
+      </section>
+
       {/* Bloc comparison */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <BlocCard label="Red-Green Bloc" parties="S · V · MP · C" seats={red_green_bloc.projected_seats} support={red_green_bloc.combined_support} color={PARTY_COLORS.S} />
-        <BlocCard label="Tidö Parties" parties="M · SD · KD · L" seats={tido_bloc.projected_seats} support={tido_bloc.combined_support} color={PARTY_COLORS.M} />
+      <section className="space-y-3">
+        <h2 className="font-serif-display text-lg font-semibold">Outcome Prediction</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <BlocCard label="Red-Green Bloc" parties="S · V · MP · C" seats={red_green_bloc.projected_seats} support={red_green_bloc.combined_support} color={PARTY_COLORS.S} />
+          <BlocCard label="Tidö Parties" parties="M · SD · KD · L" seats={tido_bloc.projected_seats} support={tido_bloc.combined_support} color={PARTY_COLORS.M} />
+        </div>
       </section>
 
       {/* Seat allocation */}
@@ -204,20 +222,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Why a Poll of Polls */}
-      <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow space-y-3">
-        <h2 className="font-serif-display text-lg font-semibold">Why a Poll of Polls?</h2>
-        <p className="text-[13px] leading-relaxed text-ink-muted">
-          Any single poll carries a margin of error and can reflect one pollster&rsquo;s particular
-          methodology, or simply the mood of the specific week it was fielded. A Poll of Polls combines
-          results from several independent institutes into one weighted estimate, which smooths out
-          one-off swings and house effects that would otherwise look like real movement in public opinion.
-        </p>
-        <p className="text-[13px] leading-relaxed text-ink-muted">
-          This is not a forecast of the election outcome — it is a snapshot of where public opinion stood
-          over the last {latest.date_range_days} days, recalculated every time new polls are published.
-        </p>
-      </section>
 
       {/* Methodology */}
       <Disclosure title="Methodology: sources, sample, and weighting">
