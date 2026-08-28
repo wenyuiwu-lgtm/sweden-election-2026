@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Script from "next/script";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import { ThemeInit } from "@/components/ThemeInit";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -127,6 +128,18 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </a>
           </div>
         </footer>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-G93G1W29DN"
+          strategy="afterInteractive"
+        />
+        <Script id="ga4-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-G93G1W29DN');
+          `}
+        </Script>
       </body>
     </html>
   );
