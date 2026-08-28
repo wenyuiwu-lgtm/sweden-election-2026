@@ -16,10 +16,37 @@ const sourceSerif = Source_Serif_4({
   weight: ["500", "600", "700"],
 });
 
+const SITE_URL = "https://frontend-one-delta-qiasdszc81.vercel.app";
+const SITE_TITLE = "2026 Swedish Election — Poll of Polls";
+const SITE_DESCRIPTION =
+  "A weighted poll-of-polls dashboard for the 2026 Swedish general election";
+
 export const metadata: Metadata = {
-  metadataBase: new URL("https://frontend-one-delta-qiasdszc81.vercel.app"),
-  title: "2026 Swedish Election — Poll of Polls",
-  description: "A weighted poll-of-polls dashboard for the 2026 Swedish general election",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    url: SITE_URL,
+    siteName: "Poll of Polls",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Sweden Votes — 2026 General Election Poll of Polls",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
