@@ -419,8 +419,10 @@ export default function Home() {
       <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
         <h2 className="font-serif-display text-lg font-semibold mb-1">Support Trend</h2>
         <p className="text-[12px] text-ink-faint mb-4">
-          Raw numbers as published by each institute, {ELECTION_DAY.getFullYear()} — not the weighted
-          average shown in Party Support above, so the latest point per party won&rsquo;t match it exactly.
+          Each dot is one individual poll, as published by its institute — not connected into a line,
+          since polls from different institutes aren&rsquo;t directly comparable (house effects can make
+          jumps between institutes look like a trend when they aren&rsquo;t). Hover a dot to see which
+          institute published it. These are raw numbers, not the weighted average shown in Party Support above.
         </p>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
@@ -453,10 +455,10 @@ export default function Home() {
                   data={t.points}
                   dataKey="support"
                   name={t.party}
-                  stroke={PARTY_COLORS[t.party]}
-                  dot={false}
-                  strokeWidth={2}
-                  activeDot={{ r: 3.5 }}
+                  stroke="none"
+                  dot={{ r: 3.5, fill: PARTY_COLORS[t.party], strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
+                  isAnimationActive={false}
                 />
               ))}
             </LineChart>
@@ -599,7 +601,15 @@ function Legend2() {
   );
 }
 
-function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: { color: string; name: string; value: number }[]; label?: string }) {
+function ChartTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { color: string; name: string; value: number; payload?: { pollster?: string } }[];
+  label?: string;
+}) {
   if (!active || !payload || payload.length === 0) return null;
   return (
     <div className="rounded-md border border-border bg-bg-elevated px-3 py-2 text-[12px] card-shadow">
@@ -609,6 +619,9 @@ function ChartTooltip({ active, payload, label }: { active?: boolean; payload?: 
           <span className="flex items-center gap-1.5" style={{ color: entry.color }}>
             <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
             {entry.name}
+            {entry.payload?.pollster ? (
+              <span className="text-ink-faint">· {entry.payload.pollster}</span>
+            ) : null}
           </span>
           <span className="font-medium tabular-nums text-ink">{entry.value.toFixed(1)}%</span>
         </div>

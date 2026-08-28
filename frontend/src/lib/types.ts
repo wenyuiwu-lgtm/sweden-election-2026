@@ -33,6 +33,7 @@ export interface PollOfPollsOutput {
 export interface TrendPoint {
   date: string;
   support: number;
+  pollster: string;
 }
 
 export interface PartyTrend {
