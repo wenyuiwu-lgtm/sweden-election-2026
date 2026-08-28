@@ -92,6 +92,7 @@ export default function Home() {
   const [rawPolls, setRawPolls] = useState<PollsterGroup[]>([]);
   const [loadFailed, setLoadFailed] = useState(false);
   const [nextUpdate, setNextUpdate] = useState<string | null>(null);
+  const [pollsterFilter, setPollsterFilter] = useState<string>("all");
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -418,12 +419,37 @@ export default function Home() {
       {/* Trend chart */}
       <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
         <h2 className="font-serif-display text-lg font-semibold mb-1">Support Trend</h2>
-        <p className="text-[12px] text-ink-faint mb-4">
-          Each dot is one individual poll, as published by its institute — not connected into a line,
-          since polls from different institutes aren&rsquo;t directly comparable (house effects can make
-          jumps between institutes look like a trend when they aren&rsquo;t). Hover a dot to see which
-          institute published it. These are raw numbers, not the weighted average shown in Party Support above.
+        <p className="text-[12px] text-ink-faint mb-3">
+          {pollsterFilter === "all" ? (
+            <>
+              Each dot is one individual poll, as published by its institute — not connected into a line,
+              since polls from different institutes aren&rsquo;t directly comparable (house effects can make
+              jumps between institutes look like a trend when they aren&rsquo;t). Hover a dot to see which
+              institute published it, or filter to one institute below to see its own trend line.
+            </>
+          ) : (
+            <>
+              Showing only {pollsterFilter}&rsquo;s own polls, connected as a trend line — comparable
+              since they share one institute&rsquo;s methodology. These are raw numbers, not the weighted
+              average shown in Party Support above.
+            </>
+          )}
         </p>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {["all", ...rawPolls.map((g) => g.pollster)].map((option) => (
+            <button
+              key={option}
+              onClick={() => setPollsterFilter(option)}
+              className={`rounded-full border px-3 py-1 text-[12px] font-medium transition-colors ${
+                pollsterFilter === option
+                  ? "border-ink bg-ink text-bg"
+                  : "border-border text-ink-muted hover:border-border-strong hover:text-ink"
+              }`}
+            >
+              {option === "all" ? "All institutes" : option}
+            </button>
+          ))}
+        </div>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
@@ -449,18 +475,24 @@ export default function Home() {
                 wrapperStyle={{ fontSize: 12, paddingTop: 12 }}
                 formatter={(value: string) => <span style={{ color: "var(--ink-muted)" }}>{value}</span>}
               />
-              {trends.map((t) => (
-                <Line
-                  key={t.party}
-                  data={t.points}
-                  dataKey="support"
-                  name={t.party}
-                  stroke="none"
-                  dot={{ r: 3.5, fill: PARTY_COLORS[t.party], strokeWidth: 0 }}
-                  activeDot={{ r: 5 }}
-                  isAnimationActive={false}
-                />
-              ))}
+              {trends.map((t) => {
+                const points =
+                  pollsterFilter === "all" ? t.points : t.points.filter((p) => p.pollster === pollsterFilter);
+                if (points.length === 0) return null;
+                return (
+                  <Line
+                    key={t.party}
+                    data={points}
+                    dataKey="support"
+                    name={t.party}
+                    stroke={pollsterFilter === "all" ? "none" : PARTY_COLORS[t.party]}
+                    strokeWidth={2}
+                    dot={{ r: 3.5, fill: PARTY_COLORS[t.party], strokeWidth: 0 }}
+                    activeDot={{ r: 5 }}
+                    isAnimationActive={false}
+                  />
+                );
+              })}
             </LineChart>
           </ResponsiveContainer>
         </div>
