@@ -145,7 +145,7 @@ export default function Home() {
             Sweden 2026 — Poll of Polls
           </h1>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ink-muted">
-            <span>{latest.total_polls_included} polls, last {latest.date_range_days} days</span>
+            <span>{latest.total_polls_included} polls, last 45 days</span>
             <span className="text-border-strong">·</span>
             <span>Updated {new Date(latest.updated_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
             {nextUpdate && (
