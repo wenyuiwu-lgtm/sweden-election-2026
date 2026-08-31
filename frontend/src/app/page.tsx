@@ -364,12 +364,17 @@ export default function Home() {
           />
         </div>
         <div className="mt-5 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px]">
-          <span className="text-ink-faint">Current Riksdag ({CURRENT_ELECTION_YEAR} election)</span>
+          <span className="text-ink-faint">{CURRENT_ELECTION_YEAR} election result<sup>*</sup></span>
           <span className="text-ink-muted">
             Tidö parties <strong className="text-ink font-semibold">{currentTidoSeats}</strong> · Red-Green{" "}
             <strong className="text-ink font-semibold">{currentRedGreenSeats}</strong>
           </span>
         </div>
+        <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
+          * Mandates as allocated on election night, {CURRENT_ELECTION_YEAR} — not today&rsquo;s live party-group
+          count. At least 9 MPs have since switched parties or sit as independents, so the Riksdag&rsquo;s current
+          seating differs slightly from this baseline.
+        </p>
       </section>
 
       {/* Seat allocation */}
@@ -489,13 +494,17 @@ export default function Home() {
           </tbody>
         </table>
         {tableView === "2022" && (
-          <p className="px-5 py-3 text-[11px] text-ink-faint border-t border-border">
-            Final counted result of the {CURRENT_ELECTION_YEAR} Swedish general election, for comparison — not a poll or projection.
+          <p className="px-5 py-3 text-[11px] leading-relaxed text-ink-faint border-t border-border">
+            Final counted result of the {CURRENT_ELECTION_YEAR} Swedish general election, for comparison — not a poll
+            or projection. This is election night&rsquo;s mandate distribution, not today&rsquo;s live party-group
+            count — at least 9 MPs have since switched parties or sit as independents.
           </p>
         )}
         {tableView === "compare" && (
-          <p className="px-5 py-3 text-[11px] text-ink-faint border-t border-border">
-            Bold figures are the current weighted projection; the smaller line below each is the actual {CURRENT_ELECTION_YEAR} result.
+          <p className="px-5 py-3 text-[11px] leading-relaxed text-ink-faint border-t border-border">
+            Bold figures are the current weighted projection; the smaller line below each is the actual{" "}
+            {CURRENT_ELECTION_YEAR} election-night result — not today&rsquo;s live party-group count, which has
+            shifted after at least 9 MPs switched parties or became independents.
           </p>
         )}
       </section>
