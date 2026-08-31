@@ -2,14 +2,14 @@
 
 A site tracking polls for the 2026 Swedish general election: aggregates polls from multiple institutes, runs a weighted model to produce a combined "Poll of Polls" support estimate and seat projection, and presents it on a dashboard. All documentation and code comments are in English.
 
-Planning source: [Google Doc — system architecture plan](https://docs.google.com/document/d/1HfLm4MQ21yE6VfEISGLcVOFsL7pOt4ThCQDRSApaSJU/edit); full write-up in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+Full architecture write-up in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Folder structure
 
 ```
 sweden-election-2026/
 ├── docs/
-│   └── ARCHITECTURE.md      # System architecture & development-stage plan (mirrors the Google Doc)
+│   └── ARCHITECTURE.md      # System architecture & development-stage plan
 ├── db/
 │   └── schema.sql           # Supabase / PostgreSQL table definitions
 ├── backend/

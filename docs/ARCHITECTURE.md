@@ -1,8 +1,6 @@
 # System Architecture — 2026 Swedish Election Poll of Polls
 
-> Source: Google Doc "2026 Swedish General Election — System Architecture Plan"
-> https://docs.google.com/document/d/1HfLm4MQ21yE6VfEISGLcVOFsL7pOt4ThCQDRSApaSJU/edit
-> This file is the implementation write-up of that document, kept as the reference during development. Update this file if the source doc changes.
+> This file is the reference for the system's architecture and development-stage plan, kept up to date during development.
 
 ## System layers
 
