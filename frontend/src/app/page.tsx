@@ -348,7 +348,7 @@ export default function Home() {
         <h2 className="font-serif-display text-lg font-semibold mb-4">Outcome Prediction</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-0 sm:divide-x sm:divide-border">
           <BlocCard
-            label="Red-Green Bloc"
+            label="Opposition"
             parties="S · V · MP · C"
             seats={red_green_bloc.projected_seats}
             support={red_green_bloc.combined_support}
@@ -366,7 +366,7 @@ export default function Home() {
         <div className="mt-5 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px]">
           <span className="text-ink-faint">{CURRENT_ELECTION_YEAR} election result<sup>*</sup></span>
           <span className="text-ink-muted">
-            Tidö parties <strong className="text-ink font-semibold">{currentTidoSeats}</strong> · Red-Green{" "}
+            Tidö parties <strong className="text-ink font-semibold">{currentTidoSeats}</strong> · Opposition{" "}
             <strong className="text-ink font-semibold">{currentRedGreenSeats}</strong>
           </span>
         </div>
@@ -425,7 +425,6 @@ export default function Home() {
                 </span>
               </th>
               <th className="text-right px-5 py-2 font-medium">Seats</th>
-              <th className="text-right px-5 py-2 font-medium">{tableView === "2022" ? "Passed 4%" : "P(>4%)"}</th>
             </tr>
           </thead>
           <tbody>
@@ -435,8 +434,6 @@ export default function Home() {
               const seats = displaySeats(code);
               const support2022 = CURRENT_SUPPORT[code];
               const seats2022 = CURRENT_SEATS[code];
-              const passed2022 = support2022 >= 4.0 && code !== "OTH";
-              const passed = tableView === "2022" ? passed2022 : p.threshold_passed;
               const conversion = conversionRate(seats, support);
               const conversion2022 = conversionRate(seats2022, support2022);
               const compare = tableView === "compare";
@@ -455,14 +452,16 @@ export default function Home() {
                       />
                     </div>
                   </td>
-                  <td className="text-right px-5 py-3 font-semibold tabular-nums">
-                    {support.toFixed(1)}%
+                  <td className="text-right px-5 py-3 tabular-nums">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span className="font-semibold">{support.toFixed(1)}%</span>
+                      {compare && <DeltaBadge value={support - support2022} decimals={1} suffix="pp" />}
+                    </div>
                     {compare && (
-                      <div className="mt-1 flex items-center justify-end gap-1">
+                      <div className="mt-1">
                         <span className="inline-flex items-center rounded-full bg-bg-sunken px-1.5 py-0.5 text-[10px] font-medium text-ink-faint">
                           &rsquo;22 · {support2022.toFixed(1)}%
                         </span>
-                        <DeltaBadge value={support - support2022} decimals={1} suffix="pp" />
                       </div>
                     )}
                   </td>
@@ -471,28 +470,11 @@ export default function Home() {
                     {compare && <div className="mt-1 text-[10px] font-normal text-ink-faint">{conversion2022.toFixed(2)}×</div>}
                   </td>
                   <td className="text-right px-5 py-3 tabular-nums">
-                    {seats}
-                    {compare && (
-                      <div className="mt-1 flex items-center justify-end gap-1 text-[10px] font-normal text-ink-faint">
-                        <span>{seats2022}</span>
-                        <DeltaBadge value={seats - seats2022} />
-                      </div>
-                    )}
-                  </td>
-                  <td className="text-right px-5 py-3">
-                    <span
-                      className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums"
-                      style={
-                        passed
-                          ? { backgroundColor: "color-mix(in srgb, var(--positive) 15%, transparent)", color: "var(--positive)" }
-                          : { backgroundColor: "color-mix(in srgb, var(--negative) 15%, transparent)", color: "var(--negative)" }
-                      }
-                    >
-                      {tableView === "2022" ? (passed ? "Yes" : "No") : `${p.pass_probability.toFixed(0)}%`}
-                    </span>
-                    {compare && (
-                      <div className="mt-1 text-[10px] font-normal text-ink-faint">{passed2022 ? "Yes" : "No"}</div>
-                    )}
+                    <div className="flex items-center justify-end gap-1.5">
+                      <span>{seats}</span>
+                      {compare && <DeltaBadge value={seats - seats2022} />}
+                    </div>
+                    {compare && <div className="mt-1 text-[10px] font-normal text-ink-faint">{seats2022}</div>}
                   </td>
                 </tr>
               );
