@@ -458,10 +458,11 @@ export default function Home() {
                   <td className="text-right px-5 py-3 font-semibold tabular-nums">
                     {support.toFixed(1)}%
                     {compare && (
-                      <div className="mt-1">
+                      <div className="mt-1 flex items-center justify-end gap-1">
                         <span className="inline-flex items-center rounded-full bg-bg-sunken px-1.5 py-0.5 text-[10px] font-medium text-ink-faint">
                           &rsquo;22 · {support2022.toFixed(1)}%
                         </span>
+                        <DeltaBadge value={support - support2022} decimals={1} suffix="pp" />
                       </div>
                     )}
                   </td>
@@ -471,7 +472,12 @@ export default function Home() {
                   </td>
                   <td className="text-right px-5 py-3 tabular-nums">
                     {seats}
-                    {compare && <div className="mt-1 text-[10px] font-normal text-ink-faint">{seats2022}</div>}
+                    {compare && (
+                      <div className="mt-1 flex items-center justify-end gap-1 text-[10px] font-normal text-ink-faint">
+                        <span>{seats2022}</span>
+                        <DeltaBadge value={seats - seats2022} />
+                      </div>
+                    )}
                   </td>
                   <td className="text-right px-5 py-3">
                     <span
@@ -743,6 +749,24 @@ function SeatBar({ latest }: { latest: PollOfPollsOutput }) {
         })}
       </div>
     </div>
+  );
+}
+
+function DeltaBadge({ value, decimals = 0, suffix = "" }: { value: number; decimals?: number; suffix?: string }) {
+  const rounded = Number(value.toFixed(decimals));
+  if (rounded === 0) {
+    return <span className="text-[10px] font-medium text-ink-faint">±0{suffix}</span>;
+  }
+  const positive = rounded > 0;
+  return (
+    <span
+      className="text-[10px] font-semibold"
+      style={{ color: positive ? "var(--positive)" : "var(--negative)" }}
+    >
+      {positive ? "+" : ""}
+      {rounded}
+      {suffix}
+    </span>
   );
 }
 
