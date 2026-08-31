@@ -161,6 +161,10 @@ export default function Home() {
   const effectiveSnapshotId = selectedSnapshotId ?? latestSnapshotId;
   const activeSnapshot: PollOfPollsOutput =
     (effectiveSnapshotId !== null ? sortedHistory.find((s) => s.id === effectiveSnapshotId) : null) ?? latest;
+  const activeSnapshotMeta = sortedHistory.find((s) => s.id === effectiveSnapshotId);
+  const activeSnapshotDateLabel = activeSnapshotMeta
+    ? formatSnapshotDate(activeSnapshotMeta.calculation_date)
+    : new Date(latest.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
   const displaySupport = (code: PartyCode) =>
     tableView === "2022" ? CURRENT_SUPPORT[code] : activeSnapshot.parties[code].weighted_support;
   const displaySeats = (code: PartyCode) =>
@@ -449,7 +453,7 @@ export default function Home() {
                           aria-selected={isSelected}
                           onClick={() => {
                             setSelectedSnapshotId(snap.id);
-                            setTableView("current");
+                            setTableView((v) => (v === "2022" ? "current" : v));
                             setSnapshotMenuOpen(false);
                           }}
                           className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] hover:bg-bg-sunken"
@@ -484,6 +488,11 @@ export default function Home() {
             ))}
           </div>
         </div>
+        {tableView === "compare" && (
+          <p className="px-5 pb-3 text-[12px] font-medium text-ink-muted">
+            2026 ({activeSnapshotDateLabel}) vs {CURRENT_ELECTION_YEAR}
+          </p>
+        )}
         <table className="w-full text-[13px]">
           <thead>
             <tr className="text-ink-faint text-[11px] uppercase tracking-wide border-y border-border">
