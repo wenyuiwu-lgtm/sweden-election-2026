@@ -43,10 +43,7 @@ sweden-election-2026/
 5. **SCB gets its own half-life, and the window widened from 45 to 180 days.** SCB only publishes twice a year (unlike Novus/Demoskop etc., which publish every 2-4 weeks). The original 45-day window plus a flat 14-day half-life either excluded SCB entirely or decayed it to ~1% weight — effectively wasted effort. Changed to: ① widen the data window from 45 to 180 days (so a twice-yearly SCB poll can be reached at all); ② `INSTITUTION_HALF_LIFE_DAYS` gives SCB its own 90-day half-life (other institutes keep 14 days). Older polls from high-frequency institutes that now fall inside the wider window aren't distorting anything, because their own 14-day half-life already suppresses anything past ~91 days to near zero. This was decided together with you — see [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) or the site's own Methodology section for details.
 6. **Each institute capped at 3 polls (`MAX_POLLS_PER_INSTITUTION`).** After widening the window to 180 days, a high-frequency institute (e.g. Novus with 6 polls in half a year) would accumulate a higher total weight than others purely by publishing more often — verified with real data: Novus held 28.4% of total weight, higher than SCB's 20.8% despite SCB having the highest per-poll institution weight. This cap limits each institute to its 3 most recent polls in the window regardless of institution weight. **Honest caveat: in practice this barely moved the numbers** (Novus 28.4% → 28.2%, S support unchanged at 31.41%) — the 14-day half-life was already suppressing anything past 2-3 publishing cycles, so this cap is currently more of a safeguard than something with a measurable effect. It would matter if an institute ever published unusually often in a short window.
 
-## Next steps
 
-1. AI-generated election-insight summaries (a ~300-word English summary produced after each pipeline run)
-2. If the trend chart needs to be more precise, consider increasing the schedule frequency from weekly
 
 ## GitHub Actions schedule
 
