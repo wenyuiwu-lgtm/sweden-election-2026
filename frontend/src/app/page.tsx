@@ -14,7 +14,7 @@ import {
 import { Countdown } from "@/components/Countdown";
 import { Disclosure } from "@/components/Disclosure";
 import { MAX_POLLS_PER_INSTITUTION } from "@/lib/constants";
-import { PartyCode, PartyTrend, PollOfPollsOutput, PollsterGroup } from "@/lib/types";
+import { PartyCode, PartyTrend, PollOfPollsOutput, PollSnapshot, PollsterGroup } from "@/lib/types";
 
 function formatFieldwork(start: string, end: string): string {
   const format = (iso: string) =>
@@ -22,6 +22,10 @@ function formatFieldwork(start: string, end: string): string {
   const startStr = format(start);
   const endStr = format(end);
   return startStr === endStr ? startStr : `${startStr} – ${endStr}`;
+}
+
+function formatSnapshotDate(iso: string): string {
+  return new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
 const TOTAL_SEATS = 349;
@@ -108,6 +112,8 @@ export default function Home() {
   const [pollsterFilter, setPollsterFilter] = useState<string>("all");
   const [tableView, setTableView] = useState<"current" | "2022" | "compare">("current");
   const [showConversionInfo, setShowConversionInfo] = useState(false);
+  const [history, setHistory] = useState<PollSnapshot[]>([]);
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -120,6 +126,9 @@ export default function Home() {
     fetch("/api/v1/polls/raw")
       .then((res) => res.json())
       .then(setRawPolls);
+    fetch("/api/v1/polls/history")
+      .then((res) => res.json())
+      .then(setHistory);
 
     // Reads the wall clock once at mount — a display-only value, not derived
     // from props/state, so there's nothing to keep in sync afterwards.
@@ -146,10 +155,15 @@ export default function Home() {
   const { red_green_bloc, tido_bloc } = latest.bloc_summary;
   const currentRedGreenSeats = red_green_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
   const currentTidoSeats = tido_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
+  const sortedHistory = [...history].sort((a, b) => a.calculation_date.localeCompare(b.calculation_date));
+  const latestSnapshotId = sortedHistory.length > 0 ? sortedHistory[sortedHistory.length - 1].id : null;
+  const effectiveSnapshotId = selectedSnapshotId ?? latestSnapshotId;
+  const activeSnapshot: PollOfPollsOutput =
+    (effectiveSnapshotId !== null ? sortedHistory.find((s) => s.id === effectiveSnapshotId) : null) ?? latest;
   const displaySupport = (code: PartyCode) =>
-    tableView === "2022" ? CURRENT_SUPPORT[code] : latest.parties[code].weighted_support;
+    tableView === "2022" ? CURRENT_SUPPORT[code] : activeSnapshot.parties[code].weighted_support;
   const displaySeats = (code: PartyCode) =>
-    tableView === "2022" ? CURRENT_SEATS[code] : latest.parties[code].projected_seats;
+    tableView === "2022" ? CURRENT_SEATS[code] : activeSnapshot.parties[code].projected_seats;
   const sortedTable = [...TABLE_PARTIES].sort((a, b) => displaySupport(b) - displaySupport(a));
   const topSupport = Math.max(...TABLE_PARTIES.map((p) => displaySupport(p)));
   const conversionRate = (seats: number, support: number) =>
@@ -395,14 +409,43 @@ export default function Home() {
         <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
           <h2 className="font-serif-display text-lg font-semibold">Party Support</h2>
           <div className="segmented-track">
-            {(["current", "2022", "compare"] as const).map((view) => (
+            <div className="relative flex items-center">
+              <select
+                value={effectiveSnapshotId ?? ""}
+                onChange={(e) => {
+                  setSelectedSnapshotId(Number(e.target.value));
+                  setTableView("current");
+                }}
+                data-active={tableView === "current"}
+                aria-label="2026 poll snapshot date"
+                className="segmented-option appearance-none bg-transparent pr-4 cursor-pointer"
+              >
+                {[...sortedHistory].reverse().map((snap) => (
+                  <option key={snap.id} value={snap.id}>
+                    2026 · {formatSnapshotDate(snap.calculation_date)}
+                    {snap.id === latestSnapshotId ? " (latest)" : ""}
+                  </option>
+                ))}
+              </select>
+              <svg
+                className="pointer-events-none absolute right-1.5 h-3 w-3"
+                style={{ color: tableView === "current" ? "#ffffff" : "var(--ink-faint)" }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            {(["2022", "compare"] as const).map((view) => (
               <button
                 key={view}
                 onClick={() => setTableView(view)}
                 data-active={tableView === view}
                 className="segmented-option"
               >
-                {view === "current" ? "Current polling" : view === "2022" ? `${CURRENT_ELECTION_YEAR}` : "Compare"}
+                {view === "2022" ? `${CURRENT_ELECTION_YEAR}` : "Compare"}
               </button>
             ))}
           </div>
@@ -429,7 +472,7 @@ export default function Home() {
           </thead>
           <tbody>
             {sortedTable.map((code) => {
-              const p = latest.parties[code];
+              const p = activeSnapshot.parties[code];
               const support = displaySupport(code);
               const seats = displaySeats(code);
               const support2022 = CURRENT_SUPPORT[code];

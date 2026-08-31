@@ -30,6 +30,11 @@ export interface PollOfPollsOutput {
   };
 }
 
+export interface PollSnapshot extends PollOfPollsOutput {
+  id: number;
+  calculation_date: string;
+}
+
 export interface TrendPoint {
   date: string;
   support: number;
