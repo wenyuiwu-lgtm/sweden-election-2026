@@ -106,7 +106,8 @@ export default function Home() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [nextUpdate, setNextUpdate] = useState<string | null>(null);
   const [pollsterFilter, setPollsterFilter] = useState<string>("all");
-  const [tableView, setTableView] = useState<"current" | "2022">("current");
+  const [tableView, setTableView] = useState<"current" | "2022" | "compare">("current");
+  const [showConversionInfo, setShowConversionInfo] = useState(false);
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -146,11 +147,13 @@ export default function Home() {
   const currentRedGreenSeats = red_green_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
   const currentTidoSeats = tido_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
   const displaySupport = (code: PartyCode) =>
-    tableView === "current" ? latest.parties[code].weighted_support : CURRENT_SUPPORT[code];
+    tableView === "2022" ? CURRENT_SUPPORT[code] : latest.parties[code].weighted_support;
   const displaySeats = (code: PartyCode) =>
-    tableView === "current" ? latest.parties[code].projected_seats : CURRENT_SEATS[code];
+    tableView === "2022" ? CURRENT_SEATS[code] : latest.parties[code].projected_seats;
   const sortedTable = [...TABLE_PARTIES].sort((a, b) => displaySupport(b) - displaySupport(a));
   const topSupport = Math.max(...TABLE_PARTIES.map((p) => displaySupport(p)));
+  const conversionRate = (seats: number, support: number) =>
+    support > 0 ? seats / TOTAL_SEATS / (support / 100) : 0;
 
   return (
     <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-10 space-y-10">
@@ -377,6 +380,7 @@ export default function Home() {
         </div>
         <SeatBar latest={latest} />
         <Legend2 />
+        <SeatDonut latest={latest} />
       </section>
 
       {/* Party leaderboard */}
@@ -384,7 +388,7 @@ export default function Home() {
         <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
           <h2 className="font-serif-display text-lg font-semibold">Party Support</h2>
           <div className="flex gap-1.5">
-            {(["current", "2022"] as const).map((view) => (
+            {(["current", "2022", "compare"] as const).map((view) => (
               <button
                 key={view}
                 onClick={() => setTableView(view)}
@@ -394,7 +398,7 @@ export default function Home() {
                     : "border-border text-ink-muted hover:border-border-strong hover:text-ink"
                 }`}
               >
-                {view === "current" ? "Current polling" : `${CURRENT_ELECTION_YEAR} election result`}
+                {view === "current" ? "Current polling" : view === "2022" ? `${CURRENT_ELECTION_YEAR} election result` : "Compare both"}
               </button>
             ))}
           </div>
@@ -405,10 +409,19 @@ export default function Home() {
               <th className="text-left px-5 py-2 font-medium">Party</th>
               <th className="text-right px-5 py-2 font-medium">Support</th>
               <th className="text-right px-5 py-2 font-medium hidden sm:table-cell">
-                {tableView === "current" ? "Margin" : "Result"}
+                <span className="inline-flex items-center gap-1 justify-end">
+                  Conversion
+                  <button
+                    onClick={() => setShowConversionInfo(true)}
+                    aria-label="What is vote-to-seat conversion rate?"
+                    className="flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border border-ink-faint text-[9px] normal-case leading-none text-ink-faint hover:border-ink hover:text-ink"
+                  >
+                    i
+                  </button>
+                </span>
               </th>
               <th className="text-right px-5 py-2 font-medium">Seats</th>
-              <th className="text-right px-5 py-2 font-medium">{tableView === "current" ? "P(>4%)" : "Passed 4%"}</th>
+              <th className="text-right px-5 py-2 font-medium">{tableView === "2022" ? "Passed 4%" : "P(>4%)"}</th>
             </tr>
           </thead>
           <tbody>
@@ -416,7 +429,13 @@ export default function Home() {
               const p = latest.parties[code];
               const support = displaySupport(code);
               const seats = displaySeats(code);
-              const passed = tableView === "current" ? p.threshold_passed : support >= 4.0 && code !== "OTH";
+              const support2022 = CURRENT_SUPPORT[code];
+              const seats2022 = CURRENT_SEATS[code];
+              const passed2022 = support2022 >= 4.0 && code !== "OTH";
+              const passed = tableView === "2022" ? passed2022 : p.threshold_passed;
+              const conversion = conversionRate(seats, support);
+              const conversion2022 = conversionRate(seats2022, support2022);
+              const compare = tableView === "compare";
               return (
                 <tr key={code} className="border-b border-border last:border-0 hover:bg-bg-sunken/60 transition-colors">
                   <td className="px-5 py-3">
@@ -432,11 +451,24 @@ export default function Home() {
                       />
                     </div>
                   </td>
-                  <td className="text-right px-5 py-3 font-semibold tabular-nums">{support.toFixed(1)}%</td>
-                  <td className="text-right px-5 py-3 text-ink-faint tabular-nums hidden sm:table-cell">
-                    {tableView === "current" ? `±${p.margin_of_error.toFixed(1)}` : "final"}
+                  <td className="text-right px-5 py-3 font-semibold tabular-nums">
+                    {support.toFixed(1)}%
+                    {compare && (
+                      <div className="text-[10px] font-normal text-ink-faint">{CURRENT_ELECTION_YEAR}: {support2022.toFixed(1)}%</div>
+                    )}
                   </td>
-                  <td className="text-right px-5 py-3 tabular-nums">{seats}</td>
+                  <td className="text-right px-5 py-3 text-ink-faint tabular-nums hidden sm:table-cell">
+                    {conversion.toFixed(2)}×
+                    {compare && (
+                      <div className="text-[10px] font-normal text-ink-faint">{CURRENT_ELECTION_YEAR}: {conversion2022.toFixed(2)}×</div>
+                    )}
+                  </td>
+                  <td className="text-right px-5 py-3 tabular-nums">
+                    {seats}
+                    {compare && (
+                      <div className="text-[10px] font-normal text-ink-faint">{CURRENT_ELECTION_YEAR}: {seats2022}</div>
+                    )}
+                  </td>
                   <td className="text-right px-5 py-3">
                     <span
                       className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums"
@@ -446,8 +478,11 @@ export default function Home() {
                           : { backgroundColor: "color-mix(in srgb, var(--negative) 15%, transparent)", color: "var(--negative)" }
                       }
                     >
-                      {tableView === "current" ? `${p.pass_probability.toFixed(0)}%` : passed ? "Yes" : "No"}
+                      {tableView === "2022" ? (passed ? "Yes" : "No") : `${p.pass_probability.toFixed(0)}%`}
                     </span>
+                    {compare && (
+                      <div className="mt-1 text-[10px] font-normal text-ink-faint">{CURRENT_ELECTION_YEAR}: {passed2022 ? "Yes" : "No"}</div>
+                    )}
                   </td>
                 </tr>
               );
@@ -459,7 +494,45 @@ export default function Home() {
             Final counted result of the {CURRENT_ELECTION_YEAR} Swedish general election, for comparison — not a poll or projection.
           </p>
         )}
+        {tableView === "compare" && (
+          <p className="px-5 py-3 text-[11px] text-ink-faint border-t border-border">
+            Bold figures are the current weighted projection; the smaller line below each is the actual {CURRENT_ELECTION_YEAR} result.
+          </p>
+        )}
       </section>
+
+      {showConversionInfo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => setShowConversionInfo(false)}
+        >
+          <div
+            className="max-w-sm rounded-lg border border-border bg-bg-elevated p-5 card-shadow"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4 mb-2">
+              <h3 className="font-serif-display text-base font-semibold">Vote-to-seat conversion rate</h3>
+              <button
+                onClick={() => setShowConversionInfo(false)}
+                aria-label="Close"
+                className="shrink-0 text-ink-faint hover:text-ink"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-[13px] leading-relaxed text-ink-muted mb-3">
+              How efficiently a party&rsquo;s vote share turns into seats, relative to a perfectly
+              proportional result. Above 1× means the party wins a bigger seat share than its vote
+              share — common for larger parties, since Sweden&rsquo;s 4% threshold and seat-rounding
+              favor them. Below 1× means the opposite. A party that misses the 4% threshold converts
+              at 0×, no matter how close it came.
+            </p>
+            <div className="rounded-md bg-bg-sunken px-3 py-2 font-mono text-[12px] text-ink">
+              rate = (seats ÷ {TOTAL_SEATS}) ÷ (vote share ÷ 100)
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Trend chart */}
       <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
@@ -674,6 +747,68 @@ function Legend2() {
           {code}
         </span>
       ))}
+    </div>
+  );
+}
+
+function SeatDonut({ latest }: { latest: PollOfPollsOutput }) {
+  const [drawn, setDrawn] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // One-time animation-start flag for the mount-in draw effect below —
+      // not derived from props/state, so there's nothing to keep in sync.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDrawn(true);
+    }, 20);
+    return () => clearTimeout(timer);
+  }, []);
+
+  const R = 95;
+  const STROKE = 26;
+  const CX = 130;
+  const CY = 130;
+  const GAP_PX = 3;
+  const FULL_CIRC = 2 * Math.PI * R;
+  const HALF_CIRC = FULL_CIRC / 2;
+
+  const parties = SPECTRUM_ORDER.filter((code) => latest.parties[code].projected_seats > 0);
+  let cumulative = 0;
+  const segments = parties.map((code) => {
+    const seats = latest.parties[code].projected_seats;
+    const rawLen = (seats / TOTAL_SEATS) * HALF_CIRC;
+    const arcLen = Math.max(rawLen - GAP_PX, 0);
+    const offset = cumulative;
+    cumulative += rawLen;
+    return { code, seats, arcLen, offset };
+  });
+
+  return (
+    <div className="relative mt-6 flex justify-center">
+      <svg viewBox={`0 0 ${CX * 2} ${CY + 6}`} className="w-full max-w-md" role="img" aria-label="Half-donut chart of projected Riksdag seats by party">
+        {segments.map((seg) => (
+          <circle
+            key={seg.code}
+            cx={CX}
+            cy={CY}
+            r={R}
+            fill="none"
+            stroke={PARTY_COLORS[seg.code]}
+            strokeWidth={STROKE}
+            transform={`rotate(180 ${CX} ${CY})`}
+            style={{
+              strokeDasharray: `${seg.arcLen} ${FULL_CIRC - seg.arcLen}`,
+              strokeDashoffset: drawn ? -seg.offset : -seg.offset - seg.arcLen,
+              transition: "stroke-dashoffset 900ms cubic-bezier(0.16, 1, 0.3, 1)",
+            }}
+          >
+            <title>{`${seg.code}: ${seg.seats} seats`}</title>
+          </circle>
+        ))}
+      </svg>
+      <div className="pointer-events-none absolute inset-x-0 bottom-1 flex flex-col items-center">
+        <span className="font-serif-display text-2xl font-semibold text-ink">{TOTAL_SEATS}</span>
+        <span className="text-[11px] text-ink-faint">total seats</span>
+      </div>
     </div>
   );
 }
