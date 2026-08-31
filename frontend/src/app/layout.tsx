@@ -113,7 +113,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </a>{" "}
               — and has not been independently verified by us. See the Methodology section above for the
               full weighting model. Not affiliated with any polling institute, party, or the Swedish
-              Election Authority.
+              Election Authority.{" "}
+              <a
+                href="https://github.com/wenyuiwu-lgtm/sweden-election-2026"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline decoration-border-strong underline-offset-2 hover:text-ink-muted"
+              >
+                Source
+              </a>
+              .
             </p>
             <a
               href="https://www.linkedin.com/company/cwsofficial"

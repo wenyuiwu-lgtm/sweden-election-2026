@@ -32,13 +32,13 @@ export function Countdown() {
   const now = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
   return (
-    <div className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow flex items-center justify-between flex-wrap gap-4">
+    <div className="rounded-2xl border border-border bg-bg-elevated p-5 card-shadow flex items-center justify-between flex-wrap gap-4">
       <div>
         <div className="text-[11px] uppercase tracking-wide text-ink-faint mb-0.5">Election Day</div>
         <div className="font-serif-display text-base font-semibold">11 September 2026</div>
       </div>
       {now === null ? (
-        <div className="h-11 w-40 rounded bg-bg-sunken animate-pulse" />
+        <div className="h-12 w-56 rounded-full bg-bg-sunken animate-pulse" />
       ) : (
         <CountdownReadout msRemaining={ELECTION_DAY - now} />
       )}
@@ -48,7 +48,9 @@ export function Countdown() {
 
 function CountdownReadout({ msRemaining }: { msRemaining: number }) {
   if (msRemaining <= 0) {
-    return <div className="font-serif-display text-xl font-semibold text-gold">Voting is underway</div>;
+    return (
+      <div className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white">Voting is underway</div>
+    );
   }
 
   const days = Math.floor(msRemaining / 86_400_000);
@@ -56,23 +58,25 @@ function CountdownReadout({ msRemaining }: { msRemaining: number }) {
   const minutes = Math.floor((msRemaining % 3_600_000) / 60_000);
 
   return (
-    <div className="flex items-end gap-3">
-      <CountdownUnit value={days} label="Days" />
-      <span className="font-serif-display text-2xl text-border-strong pb-3 select-none">:</span>
-      <CountdownUnit value={hours} label="Hours" />
-      <span className="font-serif-display text-2xl text-border-strong pb-3 select-none">:</span>
-      <CountdownUnit value={minutes} label="Min" />
+    <div className="flex items-center gap-0.5 rounded-full bg-accent pl-4 pr-3 py-2 text-white">
+      <CountdownUnit value={days} label="d" />
+      <CountdownColon />
+      <CountdownUnit value={hours} label="h" />
+      <CountdownColon />
+      <CountdownUnit value={minutes} label="m" />
     </div>
   );
 }
 
+function CountdownColon() {
+  return <span className="text-lg font-semibold text-white/30 select-none">:</span>;
+}
+
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   return (
-    <div className="text-center w-11">
-      <div className="font-serif-display text-3xl font-semibold tabular-nums text-gold leading-none">
-        {value.toString().padStart(2, "0")}
-      </div>
-      <div className="text-[10px] uppercase tracking-wide text-ink-faint mt-1">{label}</div>
+    <div className="flex items-baseline gap-0.5 px-1">
+      <span className="text-2xl font-semibold tabular-nums leading-none">{value.toString().padStart(2, "0")}</span>
+      <span className="text-[11px] font-medium text-white/60">{label}</span>
     </div>
   );
 }

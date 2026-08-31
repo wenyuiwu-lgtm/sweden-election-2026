@@ -18,7 +18,7 @@ export function Disclosure({ title, children }: { title: string; children: React
   }, [open]);
 
   return (
-    <div className="rounded-lg border border-border bg-bg-elevated card-shadow overflow-hidden">
+    <div className="rounded-2xl border border-border bg-bg-elevated card-shadow overflow-hidden">
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}

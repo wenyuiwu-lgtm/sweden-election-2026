@@ -179,7 +179,7 @@ export default function Home() {
       </section>
 
       {/* Why a Poll of Polls */}
-      <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow space-y-3">
+      <section className="rounded-2xl border border-border bg-bg-elevated p-5 card-shadow space-y-3">
         <h2 className="font-serif-display text-lg font-semibold">Why a Poll of Polls?</h2>
         <p className="text-[13px] leading-relaxed text-ink-muted">
           Any single poll carries a margin of error and can reflect one pollster&rsquo;s particular
@@ -344,7 +344,7 @@ export default function Home() {
       </Disclosure>
 
       {/* Outcome Prediction */}
-      <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
+      <section className="rounded-2xl border border-border bg-bg-elevated p-5 card-shadow">
         <h2 className="font-serif-display text-lg font-semibold mb-4">Outcome Prediction</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-0 sm:divide-x sm:divide-border">
           <BlocCard
@@ -373,32 +373,31 @@ export default function Home() {
       </section>
 
       {/* Seat allocation */}
-      <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
+      <section className="rounded-2xl border border-border bg-bg-elevated p-5 card-shadow">
         <div className="flex items-baseline justify-between mb-4">
           <h2 className="font-serif-display text-lg font-semibold">Riksdag Seat Projection</h2>
           <span className="text-[12px] text-ink-faint">{TOTAL_SEATS} seats · {MAJORITY} for a majority</span>
         </div>
-        <SeatBar latest={latest} />
-        <Legend2 />
         <SeatDonut latest={latest} />
+        <div className="mt-6">
+          <SeatBar latest={latest} />
+          <Legend2 />
+        </div>
       </section>
 
       {/* Party leaderboard */}
-      <section className="rounded-lg border border-border bg-bg-elevated overflow-hidden card-shadow">
+      <section className="rounded-2xl border border-border bg-bg-elevated overflow-hidden card-shadow">
         <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
           <h2 className="font-serif-display text-lg font-semibold">Party Support</h2>
-          <div className="flex gap-1.5">
+          <div className="segmented-track">
             {(["current", "2022", "compare"] as const).map((view) => (
               <button
                 key={view}
                 onClick={() => setTableView(view)}
-                className={`rounded-full border px-3 py-1 text-[12px] font-medium transition-colors ${
-                  tableView === view
-                    ? "border-ink bg-ink text-bg"
-                    : "border-border text-ink-muted hover:border-border-strong hover:text-ink"
-                }`}
+                data-active={tableView === view}
+                className="segmented-option"
               >
-                {view === "current" ? "Current polling" : view === "2022" ? `${CURRENT_ELECTION_YEAR} election result` : "Compare both"}
+                {view === "current" ? "Current" : view === "2022" ? `${CURRENT_ELECTION_YEAR}` : "Compare"}
               </button>
             ))}
           </div>
@@ -454,20 +453,20 @@ export default function Home() {
                   <td className="text-right px-5 py-3 font-semibold tabular-nums">
                     {support.toFixed(1)}%
                     {compare && (
-                      <div className="text-[10px] font-normal text-ink-faint">{CURRENT_ELECTION_YEAR}: {support2022.toFixed(1)}%</div>
+                      <div className="mt-1">
+                        <span className="inline-flex items-center rounded-full bg-bg-sunken px-1.5 py-0.5 text-[10px] font-medium text-ink-faint">
+                          &rsquo;22 · {support2022.toFixed(1)}%
+                        </span>
+                      </div>
                     )}
                   </td>
                   <td className="text-right px-5 py-3 text-ink-faint tabular-nums hidden sm:table-cell">
                     {conversion.toFixed(2)}×
-                    {compare && (
-                      <div className="text-[10px] font-normal text-ink-faint">{CURRENT_ELECTION_YEAR}: {conversion2022.toFixed(2)}×</div>
-                    )}
+                    {compare && <div className="mt-1 text-[10px] font-normal text-ink-faint">{conversion2022.toFixed(2)}×</div>}
                   </td>
                   <td className="text-right px-5 py-3 tabular-nums">
                     {seats}
-                    {compare && (
-                      <div className="text-[10px] font-normal text-ink-faint">{CURRENT_ELECTION_YEAR}: {seats2022}</div>
-                    )}
+                    {compare && <div className="mt-1 text-[10px] font-normal text-ink-faint">{seats2022}</div>}
                   </td>
                   <td className="text-right px-5 py-3">
                     <span
@@ -481,7 +480,7 @@ export default function Home() {
                       {tableView === "2022" ? (passed ? "Yes" : "No") : `${p.pass_probability.toFixed(0)}%`}
                     </span>
                     {compare && (
-                      <div className="mt-1 text-[10px] font-normal text-ink-faint">{CURRENT_ELECTION_YEAR}: {passed2022 ? "Yes" : "No"}</div>
+                      <div className="mt-1 text-[10px] font-normal text-ink-faint">{passed2022 ? "Yes" : "No"}</div>
                     )}
                   </td>
                 </tr>
@@ -507,7 +506,7 @@ export default function Home() {
           onClick={() => setShowConversionInfo(false)}
         >
           <div
-            className="max-w-sm rounded-lg border border-border bg-bg-elevated p-5 card-shadow"
+            className="max-w-sm rounded-2xl border border-border bg-bg-elevated p-5 card-shadow"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-4 mb-2">
@@ -535,7 +534,7 @@ export default function Home() {
       )}
 
       {/* Trend chart */}
-      <section className="rounded-lg border border-border bg-bg-elevated p-5 card-shadow">
+      <section className="rounded-2xl border border-border bg-bg-elevated p-5 card-shadow">
         <h2 className="font-serif-display text-lg font-semibold mb-1">Support Trend</h2>
         <p className="text-[12px] text-ink-faint mb-3">
           {pollsterFilter === "all" ? (
@@ -558,10 +557,10 @@ export default function Home() {
             <button
               key={option}
               onClick={() => setPollsterFilter(option)}
-              className={`rounded-full border px-3 py-1 text-[12px] font-medium transition-colors ${
+              className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
                 pollsterFilter === option
-                  ? "border-ink bg-ink text-bg"
-                  : "border-border text-ink-muted hover:border-border-strong hover:text-ink"
+                  ? "bg-accent text-white"
+                  : "bg-bg-sunken text-ink-muted hover:text-ink"
               }`}
             >
               {option === "all" ? "All institutes" : option}
@@ -771,6 +770,8 @@ function SeatDonut({ latest }: { latest: PollOfPollsOutput }) {
   const FULL_CIRC = 2 * Math.PI * R;
   const HALF_CIRC = FULL_CIRC / 2;
 
+  const [active, setActive] = useState<PartyCode | null>(null);
+
   const parties = SPECTRUM_ORDER.filter((code) => latest.parties[code].projected_seats > 0);
   let cumulative = 0;
   const segments = parties.map((code) => {
@@ -782,9 +783,17 @@ function SeatDonut({ latest }: { latest: PollOfPollsOutput }) {
     return { code, seats, arcLen, offset };
   });
 
+  const activeParty = active ? latest.parties[active] : null;
+
   return (
     <div className="relative mt-6 flex justify-center">
-      <svg viewBox={`0 0 ${CX * 2} ${CY + 6}`} className="w-full max-w-md" role="img" aria-label="Half-donut chart of projected Riksdag seats by party">
+      <svg
+        viewBox={`0 0 ${CX * 2} ${CY + 6}`}
+        className="w-full max-w-md"
+        role="img"
+        aria-label="Half-donut chart of projected Riksdag seats by party"
+        onMouseLeave={() => setActive(null)}
+      >
         {segments.map((seg) => (
           <circle
             key={seg.code}
@@ -795,19 +804,32 @@ function SeatDonut({ latest }: { latest: PollOfPollsOutput }) {
             stroke={PARTY_COLORS[seg.code]}
             strokeWidth={STROKE}
             transform={`rotate(180 ${CX} ${CY})`}
+            className="cursor-pointer"
+            onMouseEnter={() => setActive(seg.code)}
+            onClick={() => setActive((prev) => (prev === seg.code ? null : seg.code))}
             style={{
               strokeDasharray: `${seg.arcLen} ${FULL_CIRC - seg.arcLen}`,
               strokeDashoffset: drawn ? -seg.offset : -seg.offset - seg.arcLen,
-              transition: "stroke-dashoffset 900ms cubic-bezier(0.16, 1, 0.3, 1)",
+              opacity: active && active !== seg.code ? 0.35 : 1,
+              transition: "stroke-dashoffset 900ms cubic-bezier(0.16, 1, 0.3, 1), opacity 0.15s ease",
             }}
-          >
-            <title>{`${seg.code}: ${seg.seats} seats`}</title>
-          </circle>
+          />
         ))}
       </svg>
       <div className="pointer-events-none absolute inset-x-0 bottom-1 flex flex-col items-center">
-        <span className="font-serif-display text-2xl font-semibold text-ink">{TOTAL_SEATS}</span>
-        <span className="text-[11px] text-ink-faint">total seats</span>
+        {activeParty ? (
+          <>
+            <span className="font-serif-display text-lg font-semibold text-ink leading-tight">{activeParty.name}</span>
+            <span className="text-[12px] text-ink-muted mt-0.5">
+              {activeParty.weighted_support.toFixed(1)}% · {activeParty.projected_seats} seats
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="font-serif-display text-2xl font-semibold text-ink">{TOTAL_SEATS}</span>
+            <span className="text-[11px] text-ink-faint">total seats</span>
+          </>
+        )}
       </div>
     </div>
   );
