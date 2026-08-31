@@ -114,6 +114,7 @@ export default function Home() {
   const [showConversionInfo, setShowConversionInfo] = useState(false);
   const [history, setHistory] = useState<PollSnapshot[]>([]);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
+  const [snapshotMenuOpen, setSnapshotMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -377,11 +378,11 @@ export default function Home() {
             className="sm:pl-6"
           />
         </div>
-        <div className="mt-5 pt-4 border-t border-border flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[12px]">
-          <span className="text-ink-faint">{CURRENT_ELECTION_YEAR} election result<sup>*</sup></span>
+        <div className="mt-5 pt-4 border-t border-border flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
+          <span className="text-ink-faint">{CURRENT_ELECTION_YEAR} election result<sup>*</sup>:</span>
           <span className="text-ink-muted">
-            Tidö parties <strong className="text-ink font-semibold">{currentTidoSeats}</strong> · Opposition{" "}
-            <strong className="text-ink font-semibold">{currentRedGreenSeats}</strong>
+            Opposition <strong className="text-ink font-semibold">{currentRedGreenSeats}</strong> · Tidö parties{" "}
+            <strong className="text-ink font-semibold">{currentTidoSeats}</strong>
           </span>
         </div>
         <p className="mt-2 text-[11px] leading-relaxed text-ink-faint">
@@ -409,34 +410,67 @@ export default function Home() {
         <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
           <h2 className="font-serif-display text-lg font-semibold">Party Support</h2>
           <div className="segmented-track">
-            <div className="relative flex items-center">
-              <select
-                value={effectiveSnapshotId ?? ""}
-                onChange={(e) => {
-                  setSelectedSnapshotId(Number(e.target.value));
-                  setTableView("current");
-                }}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSnapshotMenuOpen((open) => !open)}
                 data-active={tableView === "current"}
-                aria-label="2026 poll snapshot date"
-                className="segmented-option appearance-none bg-transparent pr-4 cursor-pointer"
+                aria-haspopup="listbox"
+                aria-expanded={snapshotMenuOpen}
+                className="segmented-option inline-flex items-center gap-1"
               >
-                {[...sortedHistory].reverse().map((snap) => (
-                  <option key={snap.id} value={snap.id}>
-                    2026 · {formatSnapshotDate(snap.calculation_date)}
-                    {snap.id === latestSnapshotId ? " (latest)" : ""}
-                  </option>
-                ))}
-              </select>
-              <svg
-                className="pointer-events-none absolute right-1.5 h-3 w-3"
-                style={{ color: tableView === "current" ? "#ffffff" : "var(--ink-faint)" }}
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-              >
-                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+                2026
+                <svg
+                  className="h-3 w-3 transition-transform"
+                  style={{ transform: snapshotMenuOpen ? "rotate(180deg)" : "none" }}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {snapshotMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setSnapshotMenuOpen(false)} />
+                  <div
+                    role="listbox"
+                    aria-label="2026 poll snapshot date"
+                    className="absolute left-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-bg-elevated py-1.5 card-shadow"
+                  >
+                    {[...sortedHistory].reverse().map((snap) => {
+                      const isSelected = snap.id === effectiveSnapshotId;
+                      return (
+                        <button
+                          key={snap.id}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          onClick={() => {
+                            setSelectedSnapshotId(snap.id);
+                            setTableView("current");
+                            setSnapshotMenuOpen(false);
+                          }}
+                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] hover:bg-bg-sunken"
+                        >
+                          <span className={isSelected ? "font-semibold text-ink" : "text-ink-muted"}>
+                            {formatSnapshotDate(snap.calculation_date)}
+                            {snap.id === latestSnapshotId && (
+                              <span className="ml-1.5 text-[10px] font-normal text-ink-faint">latest</span>
+                            )}
+                          </span>
+                          {isSelected && (
+                            <svg className="h-3.5 w-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
             </div>
             {(["2022", "compare"] as const).map((view) => (
               <button
