@@ -86,6 +86,19 @@ const CURRENT_SEATS: Record<PartyCode, number> = {
   OTH: 0,
 };
 
+// Actual vote share from the 2022 general election (Valmyndigheten's final count).
+const CURRENT_SUPPORT: Record<PartyCode, number> = {
+  S: 30.33,
+  SD: 20.54,
+  M: 19.10,
+  V: 6.75,
+  C: 6.71,
+  KD: 5.34,
+  MP: 5.08,
+  L: 4.61,
+  OTH: 1.54,
+};
+
 export default function Home() {
   const [latest, setLatest] = useState<PollOfPollsOutput | null>(null);
   const [trends, setTrends] = useState<PartyTrend[]>([]);
@@ -93,6 +106,7 @@ export default function Home() {
   const [loadFailed, setLoadFailed] = useState(false);
   const [nextUpdate, setNextUpdate] = useState<string | null>(null);
   const [pollsterFilter, setPollsterFilter] = useState<string>("all");
+  const [tableView, setTableView] = useState<"current" | "2022">("current");
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -131,10 +145,12 @@ export default function Home() {
   const { red_green_bloc, tido_bloc } = latest.bloc_summary;
   const currentRedGreenSeats = red_green_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
   const currentTidoSeats = tido_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
-  const sortedTable = [...TABLE_PARTIES].sort(
-    (a, b) => latest.parties[b].weighted_support - latest.parties[a].weighted_support
-  );
-  const topSupport = Math.max(...TABLE_PARTIES.map((p) => latest.parties[p].weighted_support));
+  const displaySupport = (code: PartyCode) =>
+    tableView === "current" ? latest.parties[code].weighted_support : CURRENT_SUPPORT[code];
+  const displaySeats = (code: PartyCode) =>
+    tableView === "current" ? latest.parties[code].projected_seats : CURRENT_SEATS[code];
+  const sortedTable = [...TABLE_PARTIES].sort((a, b) => displaySupport(b) - displaySupport(a));
+  const topSupport = Math.max(...TABLE_PARTIES.map((p) => displaySupport(p)));
 
   return (
     <main className="flex-1 mx-auto w-full max-w-5xl px-4 py-10 space-y-10">
@@ -365,20 +381,42 @@ export default function Home() {
 
       {/* Party leaderboard */}
       <section className="rounded-lg border border-border bg-bg-elevated overflow-hidden card-shadow">
-        <h2 className="font-serif-display text-lg font-semibold p-5 pb-3">Party Support</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
+          <h2 className="font-serif-display text-lg font-semibold">Party Support</h2>
+          <div className="flex gap-1.5">
+            {(["current", "2022"] as const).map((view) => (
+              <button
+                key={view}
+                onClick={() => setTableView(view)}
+                className={`rounded-full border px-3 py-1 text-[12px] font-medium transition-colors ${
+                  tableView === view
+                    ? "border-ink bg-ink text-bg"
+                    : "border-border text-ink-muted hover:border-border-strong hover:text-ink"
+                }`}
+              >
+                {view === "current" ? "Current polling" : `${CURRENT_ELECTION_YEAR} election result`}
+              </button>
+            ))}
+          </div>
+        </div>
         <table className="w-full text-[13px]">
           <thead>
             <tr className="text-ink-faint text-[11px] uppercase tracking-wide border-y border-border">
               <th className="text-left px-5 py-2 font-medium">Party</th>
               <th className="text-right px-5 py-2 font-medium">Support</th>
-              <th className="text-right px-5 py-2 font-medium hidden sm:table-cell">Margin</th>
+              <th className="text-right px-5 py-2 font-medium hidden sm:table-cell">
+                {tableView === "current" ? "Margin" : "Result"}
+              </th>
               <th className="text-right px-5 py-2 font-medium">Seats</th>
-              <th className="text-right px-5 py-2 font-medium">P(&gt;4%)</th>
+              <th className="text-right px-5 py-2 font-medium">{tableView === "current" ? "P(>4%)" : "Passed 4%"}</th>
             </tr>
           </thead>
           <tbody>
             {sortedTable.map((code) => {
               const p = latest.parties[code];
+              const support = displaySupport(code);
+              const seats = displaySeats(code);
+              const passed = tableView === "current" ? p.threshold_passed : support >= 4.0 && code !== "OTH";
               return (
                 <tr key={code} className="border-b border-border last:border-0 hover:bg-bg-sunken/60 transition-colors">
                   <td className="px-5 py-3">
@@ -390,23 +428,25 @@ export default function Home() {
                     <div className="mt-1.5 h-1 rounded-full bg-bg-sunken overflow-hidden">
                       <div
                         className="h-full rounded-full"
-                        style={{ width: `${(p.weighted_support / topSupport) * 100}%`, backgroundColor: PARTY_COLORS[code] }}
+                        style={{ width: `${(support / topSupport) * 100}%`, backgroundColor: PARTY_COLORS[code] }}
                       />
                     </div>
                   </td>
-                  <td className="text-right px-5 py-3 font-semibold tabular-nums">{p.weighted_support.toFixed(1)}%</td>
-                  <td className="text-right px-5 py-3 text-ink-faint tabular-nums hidden sm:table-cell">±{p.margin_of_error.toFixed(1)}</td>
-                  <td className="text-right px-5 py-3 tabular-nums">{p.projected_seats}</td>
+                  <td className="text-right px-5 py-3 font-semibold tabular-nums">{support.toFixed(1)}%</td>
+                  <td className="text-right px-5 py-3 text-ink-faint tabular-nums hidden sm:table-cell">
+                    {tableView === "current" ? `±${p.margin_of_error.toFixed(1)}` : "final"}
+                  </td>
+                  <td className="text-right px-5 py-3 tabular-nums">{seats}</td>
                   <td className="text-right px-5 py-3">
                     <span
                       className="inline-block rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums"
                       style={
-                        p.threshold_passed
+                        passed
                           ? { backgroundColor: "color-mix(in srgb, var(--positive) 15%, transparent)", color: "var(--positive)" }
                           : { backgroundColor: "color-mix(in srgb, var(--negative) 15%, transparent)", color: "var(--negative)" }
                       }
                     >
-                      {p.pass_probability.toFixed(0)}%
+                      {tableView === "current" ? `${p.pass_probability.toFixed(0)}%` : passed ? "Yes" : "No"}
                     </span>
                   </td>
                 </tr>
@@ -414,6 +454,11 @@ export default function Home() {
             })}
           </tbody>
         </table>
+        {tableView === "2022" && (
+          <p className="px-5 py-3 text-[11px] text-ink-faint border-t border-border">
+            Final counted result of the {CURRENT_ELECTION_YEAR} Swedish general election, for comparison — not a poll or projection.
+          </p>
+        )}
       </section>
 
       {/* Trend chart */}
