@@ -397,7 +397,7 @@ export default function Home() {
                 data-active={tableView === view}
                 className="segmented-option"
               >
-                {view === "current" ? "Current" : view === "2022" ? `${CURRENT_ELECTION_YEAR}` : "Compare"}
+                {view === "current" ? "Current polling" : view === "2022" ? `${CURRENT_ELECTION_YEAR}` : "Compare"}
               </button>
             ))}
           </div>
