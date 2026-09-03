@@ -411,7 +411,8 @@ export default function Home() {
 
       {/* Party leaderboard */}
       <section className="rounded-2xl border border-border bg-bg-elevated overflow-hidden card-shadow">
-        <div className="flex flex-wrap items-center justify-between gap-3 p-5 pb-3">
+        <div className="p-5 pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-serif-display text-lg font-semibold">Party Support</h2>
           <div className="segmented-track">
             <div className="relative">
@@ -487,6 +488,10 @@ export default function Home() {
               </button>
             ))}
           </div>
+        </div>
+        {tableView !== "2022" && activeSnapshot.update_note && (
+          <p className="mt-1.5 text-[12px] text-ink-faint">{activeSnapshot.update_note}</p>
+        )}
         </div>
         {tableView === "compare" && (
           <p className="px-5 pb-3 text-[12px] font-medium text-ink-muted">

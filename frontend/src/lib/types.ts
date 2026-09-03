@@ -28,6 +28,7 @@ export interface PollOfPollsOutput {
     red_green_bloc: BlocSummary;
     tido_bloc: BlocSummary;
   };
+  update_note: string | null;
 }
 
 export interface PollSnapshot extends PollOfPollsOutput {

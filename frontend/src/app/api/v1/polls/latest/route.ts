@@ -22,6 +22,7 @@ export async function GET() {
     date_range_days: data.date_range_days,
     parties: data.parties,
     bloc_summary: data.bloc_summary,
+    update_note: data.update_note ?? null,
   };
 
   return NextResponse.json(output);

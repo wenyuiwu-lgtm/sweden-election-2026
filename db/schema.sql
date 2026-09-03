@@ -28,7 +28,8 @@ create table if not exists poll_of_polls_history (
     parties jsonb not null,        -- { "S": { name, weighted_support, margin_of_error, projected_seats, threshold_passed, pass_probability }, ... }
     bloc_summary jsonb not null,   -- { "red_green_bloc": {...}, "tido_bloc": {...} }
     updated_at timestamptz not null,
-    created_at timestamptz not null default now()
+    created_at timestamptz not null default now(),
+    update_note text                -- human-readable summary of what changed since the previous snapshot (see election.py's build_update_note)
 );
 
 create index if not exists idx_poll_of_polls_history_calculation_date on poll_of_polls_history (calculation_date desc);

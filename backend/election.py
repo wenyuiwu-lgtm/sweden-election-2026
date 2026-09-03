@@ -329,7 +329,54 @@ class DatabaseIntegratedPipeline:
             bloc_summary=blocs
         )
 
-    def save_poll_of_polls_result(self, result: PollOfPollsOutput) -> bool:
+    def build_update_note(self, raw_polls: List[PollEntry]) -> str:
+        """
+        Summarizes what changed since the last saved snapshot, so each entry
+        in poll_of_polls_history carries a human-readable log of what's new
+        (e.g. "Added: Demoskop (fieldwork ending 24 Aug)."), independent of
+        whether this run was triggered by the schedule or manually.
+        """
+        try:
+            previous = self.supabase.table("poll_of_polls_history") \
+                .select("updated_at") \
+                .order("updated_at", desc=True) \
+                .limit(1) \
+                .execute()
+        except Exception as e:
+            logging.error(f"Failed to fetch previous snapshot for update_note: {e}")
+            return "Recalculated Poll of Polls."
+
+        pollster_count = len({p.pollster for p in raw_polls})
+
+        if not previous.data:
+            return f"Initial Poll of Polls run — {len(raw_polls)} polls from {pollster_count} institutes."
+
+        previous_updated_at = previous.data[0]["updated_at"]
+
+        try:
+            new_polls_resp = self.supabase.table("raw_polls") \
+                .select("pollster, end_date") \
+                .gt("created_at", previous_updated_at) \
+                .execute()
+            new_polls = new_polls_resp.data or []
+        except Exception as e:
+            logging.error(f"Failed to fetch newly-scraped polls for update_note: {e}")
+            return "Recalculated Poll of Polls."
+
+        if not new_polls:
+            return f"No new polls since last update — recalculated with the same {len(raw_polls)} polls."
+
+        def format_short_date(iso_date: str) -> str:
+            # Cross-platform equivalent of strftime("%-d %b") (day with no
+            # leading zero) — %-d isn't portable to Windows' strftime.
+            return datetime.strptime(iso_date, "%Y-%m-%d").strftime("%d %b").lstrip("0")
+
+        entries = ", ".join(
+            f"{p['pollster']} (fieldwork ending {format_short_date(p['end_date'])})" for p in new_polls
+        )
+        return f"Added: {entries}."
+
+    def save_poll_of_polls_result(self, result: PollOfPollsOutput, update_note: str) -> bool:
         """
         Writes the weighted result into the poll_of_polls_history table.
         """
@@ -339,7 +386,8 @@ class DatabaseIntegratedPipeline:
             "date_range_days": result.date_range_days,
             "parties": {k: v.model_dump() for k, v in result.parties.items()},
             "bloc_summary": {k: v.model_dump() for k, v in result.bloc_summary.items()},
-            "updated_at": result.updated_at
+            "updated_at": result.updated_at,
+            "update_note": update_note
         }
 
         try:
@@ -370,8 +418,9 @@ class DatabaseIntegratedPipeline:
         # 3. Run the weighting calculation and seat allocation
         result = self.calculate_poll_of_polls(recent_polls, date_range_days=date_range_days)
 
-        # 4. Save the result to the history table
-        self.save_poll_of_polls_result(result)
+        # 4. Summarize what changed since the last snapshot, then save
+        update_note = self.build_update_note(recent_polls)
+        self.save_poll_of_polls_result(result, update_note)
 
         logging.info("=== Pipeline run complete ===")
         return result
