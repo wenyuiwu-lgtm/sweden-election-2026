@@ -684,6 +684,16 @@ export default function Home() {
                 </>
               )}
             </div>
+            <button
+              type="button"
+              onClick={() => setTableView("current")}
+              aria-label="Close compare"
+              className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-bg-sunken hover:text-ink"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </button>
           </div>
         )}
         <table className="w-full text-[13px]">
