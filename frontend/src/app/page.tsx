@@ -117,6 +117,7 @@ export default function Home() {
   const [seatLogOpen, setSeatLogOpen] = useState(false);
   const [compareTargetId, setCompareTargetId] = useState<number | "2022">("2022");
   const [compareMenuOpen, setCompareMenuOpen] = useState(false);
+  const [compareBaseMenuOpen, setCompareBaseMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -599,13 +600,78 @@ export default function Home() {
         </div>
         {tableView === "compare" && (
           <div className="flex flex-wrap items-center gap-1.5 px-5 pb-3 text-[12px] font-medium text-ink-muted">
-            <span>
-              2026 ({activeSnapshotDateLabel}) vs
-            </span>
+            <span>2026</span>
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setCompareMenuOpen((open) => !open)}
+                onClick={() => {
+                  setCompareBaseMenuOpen((open) => !open);
+                  setCompareMenuOpen(false);
+                }}
+                aria-haspopup="listbox"
+                aria-expanded={compareBaseMenuOpen}
+                className="inline-flex items-center gap-1 rounded-full bg-bg-sunken px-2 py-0.5 text-ink transition-colors hover:bg-border"
+              >
+                {activeSnapshotDateLabel}
+                <svg
+                  className="h-3 w-3 transition-transform"
+                  style={{ transform: compareBaseMenuOpen ? "rotate(180deg)" : "none" }}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {compareBaseMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setCompareBaseMenuOpen(false)} />
+                  <div
+                    role="listbox"
+                    aria-label="2026 poll snapshot date"
+                    className="absolute left-0 top-full z-50 mt-2 w-40 max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-xl border border-border bg-bg-elevated py-1.5 card-shadow"
+                  >
+                    {[...sortedHistory].reverse().map((snap) => {
+                      const isSelected = snap.id === effectiveSnapshotId;
+                      return (
+                        <button
+                          key={snap.id}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          onClick={() => {
+                            setSelectedSnapshotId(snap.id);
+                            setCompareBaseMenuOpen(false);
+                          }}
+                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] hover:bg-bg-sunken"
+                        >
+                          <span className={isSelected ? "font-semibold text-ink" : "text-ink-muted"}>
+                            {formatSnapshotDate(snap.calculation_date)}
+                            {snap.id === latestSnapshotId && (
+                              <span className="ml-1.5 text-[10px] font-normal text-ink-faint">latest</span>
+                            )}
+                          </span>
+                          {isSelected && (
+                            <svg className="h-3.5 w-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+            <span>vs</span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  setCompareMenuOpen((open) => !open);
+                  setCompareBaseMenuOpen(false);
+                }}
                 aria-haspopup="listbox"
                 aria-expanded={compareMenuOpen}
                 className="inline-flex items-center gap-1 rounded-full bg-bg-sunken px-2 py-0.5 text-ink transition-colors hover:bg-border"
