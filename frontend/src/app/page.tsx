@@ -115,6 +115,8 @@ export default function Home() {
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
   const [snapshotMenuOpen, setSnapshotMenuOpen] = useState(false);
   const [seatLogOpen, setSeatLogOpen] = useState(false);
+  const [compareTargetId, setCompareTargetId] = useState<number | "2022">("2022");
+  const [compareMenuOpen, setCompareMenuOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -165,6 +167,24 @@ export default function Home() {
   const activeSnapshotDateLabel = activeSnapshotMeta
     ? formatSnapshotDate(activeSnapshotMeta.calculation_date)
     : new Date(latest.updated_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
+  const updateNoteLabel = activeSnapshot.update_note
+    ? `${activeSnapshotDateLabel}${effectiveSnapshotId === latestSnapshotId ? " (latest)" : ""}. ${activeSnapshot.update_note}`
+    : null;
+  // What the "Compare" table measures itself against — either the fixed 2022
+  // baseline, or another 2026 snapshot the reader picked. Falls back to 2022
+  // if the chosen target snapshot is no longer distinct from the primary one
+  // (e.g. the primary date was changed to match it).
+  const compareSnapshot =
+    compareTargetId !== "2022" && compareTargetId !== effectiveSnapshotId
+      ? sortedHistory.find((s) => s.id === compareTargetId) ?? null
+      : null;
+  const usingElection2022 = !compareSnapshot;
+  const compareLabel = compareSnapshot ? formatSnapshotDate(compareSnapshot.calculation_date) : `${CURRENT_ELECTION_YEAR}`;
+  const comparePillLabel = compareSnapshot ? compareLabel : "'22";
+  const compareSupport = (code: PartyCode) =>
+    compareSnapshot ? compareSnapshot.parties[code].weighted_support : CURRENT_SUPPORT[code];
+  const compareSeats = (code: PartyCode) =>
+    compareSnapshot ? compareSnapshot.parties[code].projected_seats : CURRENT_SEATS[code];
   const displaySupport = (code: PartyCode) =>
     tableView === "2022" ? CURRENT_SUPPORT[code] : activeSnapshot.parties[code].weighted_support;
   const displaySeats = (code: PartyCode) =>
@@ -485,11 +505,7 @@ export default function Home() {
             )}
           </div>
         </div>
-        {activeSnapshot.update_note && (
-          <p className="mb-3 text-[12px] text-ink-faint">
-            {activeSnapshotDateLabel}: {activeSnapshot.update_note}
-          </p>
-        )}
+        {updateNoteLabel && <p className="mb-3 text-[12px] text-ink-faint">{updateNoteLabel}</p>}
         <SeatDonut latest={activeSnapshot} />
         <div className="mt-6">
           <SeatBar latest={activeSnapshot} />
@@ -501,7 +517,7 @@ export default function Home() {
       <section className="rounded-2xl border border-border bg-bg-elevated overflow-hidden card-shadow">
         <div className="p-5 pb-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-serif-display text-lg font-semibold">Party Support</h2>
+          <h2 className="font-serif-display text-lg font-semibold">Party Support Table</h2>
           <div className="segmented-track">
             <div className="relative">
               <button
@@ -577,14 +593,98 @@ export default function Home() {
             ))}
           </div>
         </div>
-        {tableView !== "2022" && activeSnapshot.update_note && (
-          <p className="mt-1.5 text-[12px] text-ink-faint">{activeSnapshot.update_note}</p>
+        {tableView !== "2022" && updateNoteLabel && (
+          <p className="mt-1.5 text-[12px] text-ink-faint">{updateNoteLabel}</p>
         )}
         </div>
         {tableView === "compare" && (
-          <p className="px-5 pb-3 text-[12px] font-medium text-ink-muted">
-            2026 ({activeSnapshotDateLabel}) vs {CURRENT_ELECTION_YEAR}
-          </p>
+          <div className="flex flex-wrap items-center gap-1.5 px-5 pb-3 text-[12px] font-medium text-ink-muted">
+            <span>
+              2026 ({activeSnapshotDateLabel}) vs
+            </span>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setCompareMenuOpen((open) => !open)}
+                aria-haspopup="listbox"
+                aria-expanded={compareMenuOpen}
+                className="inline-flex items-center gap-1 rounded-full bg-bg-sunken px-2 py-0.5 text-ink transition-colors hover:bg-border"
+              >
+                {compareLabel}
+                <svg
+                  className="h-3 w-3 transition-transform"
+                  style={{ transform: compareMenuOpen ? "rotate(180deg)" : "none" }}
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                >
+                  <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {compareMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setCompareMenuOpen(false)} />
+                  <div
+                    role="listbox"
+                    aria-label="Compare 2026 against"
+                    className="absolute left-0 top-full z-50 mt-2 w-40 max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-xl border border-border bg-bg-elevated py-1.5 card-shadow"
+                  >
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={usingElection2022}
+                      onClick={() => {
+                        setCompareTargetId("2022");
+                        setCompareMenuOpen(false);
+                      }}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] hover:bg-bg-sunken"
+                    >
+                      <span className={usingElection2022 ? "font-semibold text-ink" : "text-ink-muted"}>
+                        {CURRENT_ELECTION_YEAR} election
+                      </span>
+                      {usingElection2022 && (
+                        <svg className="h-3.5 w-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+                    {[...sortedHistory]
+                      .reverse()
+                      .filter((snap) => snap.id !== effectiveSnapshotId)
+                      .map((snap) => {
+                        const isSelected = !usingElection2022 && snap.id === compareTargetId;
+                        return (
+                          <button
+                            key={snap.id}
+                            type="button"
+                            role="option"
+                            aria-selected={isSelected}
+                            onClick={() => {
+                              setCompareTargetId(snap.id);
+                              setCompareMenuOpen(false);
+                            }}
+                            className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] hover:bg-bg-sunken"
+                          >
+                            <span className={isSelected ? "font-semibold text-ink" : "text-ink-muted"}>
+                              {formatSnapshotDate(snap.calculation_date)}
+                              {snap.id === latestSnapshotId && (
+                                <span className="ml-1.5 text-[10px] font-normal text-ink-faint">latest</span>
+                              )}
+                            </span>
+                            {isSelected && (
+                              <svg className="h-3.5 w-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         )}
         <table className="w-full text-[13px]">
           <thead>
@@ -611,10 +711,10 @@ export default function Home() {
               const p = activeSnapshot.parties[code];
               const support = displaySupport(code);
               const seats = displaySeats(code);
-              const support2022 = CURRENT_SUPPORT[code];
-              const seats2022 = CURRENT_SEATS[code];
+              const compareSupportVal = compareSupport(code);
+              const compareSeatsVal = compareSeats(code);
               const conversion = conversionRate(seats, support);
-              const conversion2022 = conversionRate(seats2022, support2022);
+              const compareConversion = conversionRate(compareSeatsVal, compareSupportVal);
               const compare = tableView === "compare";
               return (
                 <tr key={code} className="border-b border-border last:border-0 hover:bg-bg-sunken/60 transition-colors">
@@ -634,26 +734,26 @@ export default function Home() {
                   <td className="text-right px-5 py-3 tabular-nums">
                     <div className="flex items-center justify-end gap-1.5">
                       <span className="font-semibold">{support.toFixed(1)}%</span>
-                      {compare && <DeltaBadge value={support - support2022} decimals={1} suffix="pp" />}
+                      {compare && <DeltaBadge value={support - compareSupportVal} decimals={1} suffix="pp" />}
                     </div>
                     {compare && (
                       <div className="mt-1">
                         <span className="inline-flex items-center rounded-full bg-bg-sunken px-1.5 py-0.5 text-[10px] font-medium text-ink-faint">
-                          &rsquo;22 · {support2022.toFixed(1)}%
+                          {comparePillLabel} · {compareSupportVal.toFixed(1)}%
                         </span>
                       </div>
                     )}
                   </td>
                   <td className="text-right px-5 py-3 text-ink-faint tabular-nums hidden sm:table-cell">
                     {conversion.toFixed(2)}×
-                    {compare && <div className="mt-1 text-[10px] font-normal text-ink-faint">{conversion2022.toFixed(2)}×</div>}
+                    {compare && <div className="mt-1 text-[10px] font-normal text-ink-faint">{compareConversion.toFixed(2)}×</div>}
                   </td>
                   <td className="text-right px-5 py-3 tabular-nums">
                     <div className="flex items-center justify-end gap-1.5">
                       <span>{seats}</span>
-                      {compare && <DeltaBadge value={seats - seats2022} />}
+                      {compare && <DeltaBadge value={seats - compareSeatsVal} />}
                     </div>
-                    {compare && <div className="mt-1 text-[10px] font-normal text-ink-faint">{seats2022}</div>}
+                    {compare && <div className="mt-1 text-[10px] font-normal text-ink-faint">{compareSeatsVal}</div>}
                   </td>
                 </tr>
               );
@@ -669,9 +769,19 @@ export default function Home() {
         )}
         {tableView === "compare" && (
           <p className="px-5 py-3 text-[11px] leading-relaxed text-ink-faint border-t border-border">
-            Bold figures are the current weighted projection; the smaller line below each is the actual{" "}
-            {CURRENT_ELECTION_YEAR} election-night result — not today&rsquo;s live party-group count, which has
-            shifted after at least 9 MPs switched parties or became independents.
+            {usingElection2022 ? (
+              <>
+                Bold figures are the {activeSnapshotDateLabel} weighted projection; the smaller line below each is
+                the actual {CURRENT_ELECTION_YEAR} election-night result — not today&rsquo;s live party-group count,
+                which has shifted after at least 9 MPs switched parties or became independents.
+              </>
+            ) : (
+              <>
+                Bold figures are the {activeSnapshotDateLabel} weighted projection; the smaller line below each is
+                the {compareLabel} Poll of Polls snapshot, for comparing how the estimate has moved between two
+                updates.
+              </>
+            )}
           </p>
         )}
       </section>
