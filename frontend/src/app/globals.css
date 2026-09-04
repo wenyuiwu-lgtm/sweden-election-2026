@@ -114,3 +114,18 @@ body {
 .segmented-option:not([data-active="true"]):hover {
   color: var(--ink);
 }
+
+@keyframes seat-label-fade {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.seat-label-fade {
+  animation: seat-label-fade 200ms ease;
+}

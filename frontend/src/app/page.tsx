@@ -411,80 +411,78 @@ export default function Home() {
           <h2 className="font-serif-display text-lg font-semibold">
             2026 Riksdag Seat Projection <span className="text-sm font-normal text-ink-faint">(poll of polls)</span>
           </h2>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setSeatLogOpen((open) => !open)}
-                aria-haspopup="listbox"
-                aria-expanded={seatLogOpen}
-                className="inline-flex items-center gap-1 rounded-full bg-bg-sunken px-2.5 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:text-ink"
-              >
-                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="9" />
-                  <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                Log
-              </button>
-              {seatLogOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setSeatLogOpen(false)} />
-                  <div
-                    role="listbox"
-                    aria-label="Poll of Polls update log"
-                    className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-bg-elevated py-1.5 card-shadow"
-                  >
-                    {[...sortedHistory].reverse().map((snap) => {
-                      const isSelected = snap.id === effectiveSnapshotId;
-                      return (
-                        <button
-                          key={snap.id}
-                          type="button"
-                          role="option"
-                          aria-selected={isSelected}
-                          onClick={() => {
-                            setSelectedSnapshotId(snap.id);
-                            setTableView((v) => (v === "2022" ? "current" : v));
-                            setSeatLogOpen(false);
-                          }}
-                          className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left hover:bg-bg-sunken"
-                        >
-                          <span>
-                            <span
-                              className={`block text-[13px] ${isSelected ? "font-semibold text-ink" : "text-ink-muted"}`}
-                            >
-                              {formatSnapshotDate(snap.calculation_date)}
-                              {snap.id === latestSnapshotId && (
-                                <span className="ml-1.5 text-[10px] font-normal text-ink-faint">latest</span>
-                              )}
-                            </span>
-                            {snap.update_note && (
-                              <span className="mt-0.5 block text-[11px] leading-snug text-ink-faint">
-                                {snap.update_note}
-                              </span>
-                            )}
-                          </span>
-                          {isSelected && (
-                            <svg
-                              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent"
-                              viewBox="0 0 24 24"
-                              fill="none"
-                              stroke="currentColor"
-                              strokeWidth="2.5"
-                            >
-                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </>
-              )}
-            </div>
+          <div className="relative ml-auto flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setSeatLogOpen((open) => !open)}
+              aria-haspopup="listbox"
+              aria-expanded={seatLogOpen}
+              className="inline-flex items-center gap-1 rounded-full bg-bg-sunken px-2.5 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:text-ink"
+            >
+              <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Log
+            </button>
             <span className="whitespace-nowrap text-[12px] text-ink-faint">
               {TOTAL_SEATS} seats · {MAJORITY} for a majority
             </span>
+            {seatLogOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setSeatLogOpen(false)} />
+                <div
+                  role="listbox"
+                  aria-label="Poll of Polls update log"
+                  className="absolute right-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-2.5rem)] overflow-hidden rounded-xl border border-border bg-bg-elevated py-1.5 card-shadow"
+                >
+                  {[...sortedHistory].reverse().map((snap) => {
+                    const isSelected = snap.id === effectiveSnapshotId;
+                    return (
+                      <button
+                        key={snap.id}
+                        type="button"
+                        role="option"
+                        aria-selected={isSelected}
+                        onClick={() => {
+                          setSelectedSnapshotId(snap.id);
+                          setTableView((v) => (v === "2022" ? "current" : v));
+                          setSeatLogOpen(false);
+                        }}
+                        className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left hover:bg-bg-sunken"
+                      >
+                        <span>
+                          <span
+                            className={`block text-[13px] ${isSelected ? "font-semibold text-ink" : "text-ink-muted"}`}
+                          >
+                            {formatSnapshotDate(snap.calculation_date)}
+                            {snap.id === latestSnapshotId && (
+                              <span className="ml-1.5 text-[10px] font-normal text-ink-faint">latest</span>
+                            )}
+                          </span>
+                          {snap.update_note && (
+                            <span className="mt-0.5 block text-[11px] leading-snug text-ink-faint">
+                              {snap.update_note}
+                            </span>
+                          )}
+                        </span>
+                        {isSelected && (
+                          <svg
+                            className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                          >
+                            <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                          </svg>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         </div>
         {activeSnapshot.update_note && (
@@ -1013,19 +1011,21 @@ function SeatDonut({ latest }: { latest: PollOfPollsOutput }) {
         ))}
       </svg>
       <div className="pointer-events-none absolute inset-x-0 bottom-1 flex flex-col items-center">
-        {activeParty ? (
-          <>
-            <span className="font-serif-display text-lg font-semibold text-ink leading-tight">{activeParty.name}</span>
-            <span className="text-[12px] text-ink-muted mt-0.5">
-              {activeParty.weighted_support.toFixed(1)}% · {activeParty.projected_seats} seats
-            </span>
-          </>
-        ) : (
-          <>
-            <span className="font-serif-display text-2xl font-semibold text-ink">{TOTAL_SEATS}</span>
-            <span className="text-[11px] text-ink-faint">total seats</span>
-          </>
-        )}
+        <div key={active ?? "total"} className="seat-label-fade flex flex-col items-center">
+          {activeParty ? (
+            <>
+              <span className="font-serif-display text-lg font-semibold text-ink leading-tight">{activeParty.name}</span>
+              <span className="text-[12px] text-ink-muted mt-0.5">
+                {activeParty.weighted_support.toFixed(1)}% · {activeParty.projected_seats} seats
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="font-serif-display text-2xl font-semibold text-ink">{TOTAL_SEATS}</span>
+              <span className="text-[11px] text-ink-faint">total seats</span>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
