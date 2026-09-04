@@ -429,9 +429,7 @@ export default function Home() {
       {/* Seat allocation */}
       <section className="rounded-2xl border border-border bg-bg-elevated p-5 card-shadow">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
-          <h2 className="font-serif-display text-lg font-semibold">
-            2026 Riksdag Seat Projection <span className="text-sm font-normal text-ink-faint">(poll of polls)</span>
-          </h2>
+          <h2 className="font-serif-display text-lg font-semibold">2026 Riksdag Seat Projection</h2>
           <div className="relative ml-auto flex items-center gap-3">
             <button
               type="button"
@@ -445,6 +443,16 @@ export default function Home() {
                 <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
               Log
+              <svg
+                className="h-3 w-3 transition-transform"
+                style={{ transform: seatLogOpen ? "rotate(180deg)" : "none" }}
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path d="M6 9l6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
             <span className="whitespace-nowrap text-[12px] text-ink-faint">
               {TOTAL_SEATS} seats · {MAJORITY} for a majority
@@ -550,7 +558,7 @@ export default function Home() {
                     className="absolute left-0 top-full z-50 mt-2 w-44 overflow-hidden rounded-xl border border-border bg-bg-elevated py-1.5 card-shadow"
                   >
                     {[...sortedHistory].reverse().map((snap) => {
-                      const isSelected = snap.id === effectiveSnapshotId;
+                      const isSelected = tableView !== "2022" && snap.id === effectiveSnapshotId;
                       return (
                         <button
                           key={snap.id}
