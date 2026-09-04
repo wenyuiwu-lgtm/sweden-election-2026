@@ -31,7 +31,8 @@ sweden-election-2026/
 - [x] `election.py`'s institute list was updated to match what's actually on Wikipedia: SCB, Novus, Demoskop, Ipsos, Verian, Indikator (originally only the first four; Verian and Indikator are the two most active pollsters this cycle — see "Deviations from the original plan" below)
 - [x] Full pipeline has been run end to end (including once for real via GitHub Actions); the database holds real data and the frontend is wired up and displaying it
 - [x] Frontend copy is fully in English
-- [x] **Scheduled automation**: public GitHub repo [wenyuiwu-lgtm/sweden-election-2026](https://github.com/wenyuiwu-lgtm/sweden-election-2026); `.github/workflows/update-polls.yml` re-scrapes and writes every Monday at 06:00 UTC, and becomes a no-op after election day (9/11) without needing to be manually disabled (see below)
+- [x] **Scheduled automation**: public GitHub repo [wenyuiwu-lgtm/sweden-election-2026](https://github.com/wenyuiwu-lgtm/sweden-election-2026); `.github/workflows/update-polls.yml` re-scrapes and writes every Monday at 06:00 UTC as a baseline, becomes a no-op after election day (9/11) without needing to be manually disabled (see below), and — now that the election is close and institutes publish new numbers throughout August/September rather than on a fixed weekly cadence — is also triggered manually (`workflow_dispatch`) as soon as a new poll appears, on top of the weekly schedule
+- [x] **Per-update changelog**: every run (scheduled or manual) writes a human-readable `update_note` to `poll_of_polls_history` (`backend/election.py`'s `build_update_note`, diffing `raw_polls.created_at` against the previous run) — e.g. `"Added: Novus (fieldwork ending 30 Aug)."` — surfaced on the site as a "Log" next to Riksdag Seat Projection and Party Support, so any two updates from August through September can be browsed and compared to see which institutes' newest polls were newly folded in at each step
 - [ ] AI-generated election-insight summaries
 
 ## Deviations from the original plan (worth knowing)
@@ -48,7 +49,9 @@ sweden-election-2026/
 ## GitHub Actions schedule
 
 - Repo: [wenyuiwu-lgtm/sweden-election-2026](https://github.com/wenyuiwu-lgtm/sweden-election-2026) (public)
-- Workflow: `.github/workflows/update-polls.yml`, runs `backend/scrape_wikipedia.py` every Monday at 06:00 UTC (2pm Taiwan time, 8am Swedish summer time)
+- Workflow: `.github/workflows/update-polls.yml`, runs `backend/scrape_wikipedia.py` every Monday at 06:00 UTC (2pm Taiwan time, 8am Swedish summer time) as the baseline cadence
+- **Hybrid schedule (added as the election approaches)**: the weekly Monday run originally covered the whole cycle by itself, but with most institutes now publishing new numbers throughout August and September rather than on a fixed weekly rhythm, the workflow is also triggered manually (`workflow_dispatch`) as soon as a new poll is published, in addition to — not instead of — the Monday schedule
+- **Every run is logged, automatic or manual**: `election.py` computes an `update_note` for each run (e.g. `"Added: Novus (fieldwork ending 30 Aug)."`) by diffing which `raw_polls` rows are newer than the previous snapshot, stored on `poll_of_polls_history.update_note` and shown on the site as a "Log" (next to Riksdag Seat Projection / Party Support) so past updates can be browsed and compared
 - **Automatically stops after election day (9/11)**: the workflow has a date-check step that skips every remaining step once the date passes 2026-09-11 (doesn't consume Actions minutes and doesn't write to the database) — no need to manually delete or disable this workflow afterward
 - Secrets: `SUPABASE_URL` and `SUPABASE_KEY` (service role) are already set as GitHub Actions secrets on the repo; they don't appear in code or this document
 - To trigger a run immediately instead of waiting for Monday, go to the [Actions page](https://github.com/wenyuiwu-lgtm/sweden-election-2026/actions/workflows/update-polls.yml) and click **Run workflow**

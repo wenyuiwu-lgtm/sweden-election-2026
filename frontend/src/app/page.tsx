@@ -28,6 +28,13 @@ function formatSnapshotDate(iso: string): string {
   return new Date(iso + "T00:00:00Z").toLocaleDateString("en-GB", { day: "numeric", month: "short", timeZone: "UTC" });
 }
 
+// Always shown in Central European Time (Sweden's own clock) rather than the
+// visitor's local timezone, so "Updated"/"Next update" mean the same instant
+// for everyone reading this Swedish election tracker.
+function formatCET(date: Date, options: Intl.DateTimeFormatOptions): string {
+  return date.toLocaleString("en-GB", { ...options, timeZone: "Europe/Stockholm", timeZoneName: "short" });
+}
+
 const TOTAL_SEATS = 349;
 const MAJORITY = 175;
 const ELECTION_DAY = new Date("2026-09-11T00:00:00Z");
@@ -48,15 +55,7 @@ function formatNextUpdate(now: Date): string | null {
   if (candidate.toISOString().slice(0, 10) > LAST_SCHEDULED_UPDATE_DATE) {
     return null;
   }
-  return (
-    candidate.toLocaleString("en-GB", {
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "UTC",
-    }) + " UTC"
-  );
+  return formatCET(candidate, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
 const PARTY_COLORS: Record<PartyCode, string> = {
@@ -115,6 +114,7 @@ export default function Home() {
   const [history, setHistory] = useState<PollSnapshot[]>([]);
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
   const [snapshotMenuOpen, setSnapshotMenuOpen] = useState(false);
+  const [seatLogOpen, setSeatLogOpen] = useState(false);
 
   useEffect(() => {
     fetch("/api/v1/polls/latest")
@@ -185,7 +185,10 @@ export default function Home() {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[13px] text-ink-muted">
             <span>{latest.total_polls_included} polls, last 45 days</span>
             <span className="text-border-strong">·</span>
-            <span>Updated {new Date(latest.updated_at).toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })}</span>
+            <span>
+              Updated{" "}
+              {formatCET(new Date(latest.updated_at), { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+            </span>
             {nextUpdate && (
               <>
                 <span className="text-border-strong">·</span>
@@ -347,8 +350,14 @@ export default function Home() {
         <div>
           <h3 className="font-semibold text-ink mb-1">Update schedule</h3>
           <p>
-            Refreshed automatically every Monday until election day via a scheduled job that re-scrapes
-            the latest published polls. Full pipeline source is on{" "}
+            Originally refreshed automatically every Monday via a scheduled job that re-scrapes the
+            latest published polls. With the election approaching and most institutes now publishing
+            new numbers throughout August and September rather than on a fixed weekly cadence, updates
+            are also triggered manually as soon as a new poll is published, in addition to the weekly
+            schedule. Every refresh — automatic or manual — is recorded in the Log next to Riksdag Seat
+            Projection and Party Support above, showing exactly which institutes&rsquo; polls were newly
+            added at each update, so past updates from August through September can be browsed and
+            compared directly. Full pipeline source is on{" "}
             <a
               href="https://github.com/wenyuiwu-lgtm/sweden-election-2026"
               target="_blank"
@@ -398,13 +407,94 @@ export default function Home() {
 
       {/* Seat allocation */}
       <section className="rounded-2xl border border-border bg-bg-elevated p-5 card-shadow">
-        <div className="flex items-baseline justify-between mb-4">
-          <h2 className="font-serif-display text-lg font-semibold">Riksdag Seat Projection</h2>
-          <span className="text-[12px] text-ink-faint">{TOTAL_SEATS} seats · {MAJORITY} for a majority</span>
+        <div className="flex flex-wrap items-start justify-between gap-3 mb-1">
+          <h2 className="font-serif-display text-lg font-semibold">
+            2026 Riksdag Seat Projection <span className="text-sm font-normal text-ink-faint">(poll of polls)</span>
+          </h2>
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSeatLogOpen((open) => !open)}
+                aria-haspopup="listbox"
+                aria-expanded={seatLogOpen}
+                className="inline-flex items-center gap-1 rounded-full bg-bg-sunken px-2.5 py-1 text-[11px] font-medium text-ink-muted transition-colors hover:text-ink"
+              >
+                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="9" />
+                  <path d="M12 7v5l3 3" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                Log
+              </button>
+              {seatLogOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setSeatLogOpen(false)} />
+                  <div
+                    role="listbox"
+                    aria-label="Poll of Polls update log"
+                    className="absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-xl border border-border bg-bg-elevated py-1.5 card-shadow"
+                  >
+                    {[...sortedHistory].reverse().map((snap) => {
+                      const isSelected = snap.id === effectiveSnapshotId;
+                      return (
+                        <button
+                          key={snap.id}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          onClick={() => {
+                            setSelectedSnapshotId(snap.id);
+                            setTableView((v) => (v === "2022" ? "current" : v));
+                            setSeatLogOpen(false);
+                          }}
+                          className="flex w-full items-start justify-between gap-2 px-3 py-2 text-left hover:bg-bg-sunken"
+                        >
+                          <span>
+                            <span
+                              className={`block text-[13px] ${isSelected ? "font-semibold text-ink" : "text-ink-muted"}`}
+                            >
+                              {formatSnapshotDate(snap.calculation_date)}
+                              {snap.id === latestSnapshotId && (
+                                <span className="ml-1.5 text-[10px] font-normal text-ink-faint">latest</span>
+                              )}
+                            </span>
+                            {snap.update_note && (
+                              <span className="mt-0.5 block text-[11px] leading-snug text-ink-faint">
+                                {snap.update_note}
+                              </span>
+                            )}
+                          </span>
+                          {isSelected && (
+                            <svg
+                              className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                            >
+                              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+            <span className="whitespace-nowrap text-[12px] text-ink-faint">
+              {TOTAL_SEATS} seats · {MAJORITY} for a majority
+            </span>
+          </div>
         </div>
-        <SeatDonut latest={latest} />
+        {activeSnapshot.update_note && (
+          <p className="mb-3 text-[12px] text-ink-faint">
+            {activeSnapshotDateLabel}: {activeSnapshot.update_note}
+          </p>
+        )}
+        <SeatDonut latest={activeSnapshot} />
         <div className="mt-6">
-          <SeatBar latest={latest} />
+          <SeatBar latest={activeSnapshot} />
           <Legend2 />
         </div>
       </section>
