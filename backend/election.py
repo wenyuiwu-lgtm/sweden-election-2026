@@ -331,14 +331,21 @@ class DatabaseIntegratedPipeline:
 
     def build_update_note(self, raw_polls: List[PollEntry]) -> str:
         """
-        Summarizes what changed since the last saved snapshot, so each entry
-        in poll_of_polls_history carries a human-readable log of what's new
-        (e.g. "Added: Demoskop (fieldwork ending 24 Aug)."), independent of
-        whether this run was triggered by the schedule or manually.
+        Summarizes what changed since the last saved snapshot from a
+        different calculation_date, so each entry in poll_of_polls_history
+        carries a human-readable log of what's new (e.g. "Added: Demoskop
+        (fieldwork ending 24 Aug)."), independent of whether this run was
+        triggered by the schedule or manually. Excluding today's own
+        calculation_date means a same-day rerun (save_poll_of_polls_result
+        upserts by calculation_date) still diffs against yesterday's
+        snapshot, so the note accumulates everything new for the whole day
+        rather than resetting to "no new polls" against its own prior run.
         """
+        today_str = self.target_date.strftime("%Y-%m-%d")
         try:
             previous = self.supabase.table("poll_of_polls_history") \
                 .select("updated_at") \
+                .neq("calculation_date", today_str) \
                 .order("updated_at", desc=True) \
                 .limit(1) \
                 .execute()
@@ -378,10 +385,16 @@ class DatabaseIntegratedPipeline:
 
     def save_poll_of_polls_result(self, result: PollOfPollsOutput, update_note: str) -> bool:
         """
-        Writes the weighted result into the poll_of_polls_history table.
+        Upserts the weighted result into poll_of_polls_history, keyed by
+        calculation_date. A rerun on the same calendar day — e.g. a delayed
+        scheduled run landing after an earlier manual trigger, both stamped
+        with today's date — replaces that day's row instead of inserting a
+        second one (previously produced duplicate same-day snapshots; see
+        README's "Deviations from the original plan").
         """
+        today_str = self.target_date.strftime("%Y-%m-%d")
         record = {
-            "calculation_date": self.target_date.strftime("%Y-%m-%d"),
+            "calculation_date": today_str,
             "total_polls_included": result.total_polls_included,
             "date_range_days": result.date_range_days,
             "parties": {k: v.model_dump() for k, v in result.parties.items()},
@@ -391,7 +404,18 @@ class DatabaseIntegratedPipeline:
         }
 
         try:
-            response = self.supabase.table("poll_of_polls_history").insert(record).execute()
+            existing = self.supabase.table("poll_of_polls_history") \
+                .select("id") \
+                .eq("calculation_date", today_str) \
+                .limit(1) \
+                .execute()
+            if existing.data:
+                response = self.supabase.table("poll_of_polls_history") \
+                    .update(record) \
+                    .eq("id", existing.data[0]["id"]) \
+                    .execute()
+            else:
+                response = self.supabase.table("poll_of_polls_history").insert(record).execute()
             if response.data:
                 logging.info(f"Successfully saved to poll_of_polls_history (date: {self.target_date})")
                 return True
