@@ -3,7 +3,7 @@ name: Update Poll of Polls
 # Runs every Monday to re-scrape Wikipedia's opinion-polling page and refresh
 # the weighted Poll of Polls snapshot in Supabase.
 #
-# The "gate" step makes this a no-op after election day (2026-09-11) instead
+# The "gate" step makes this a no-op after election day (2026-09-13) instead
 # of needing someone to remember to delete the workflow afterwards.
 
 "on":
@@ -18,7 +18,7 @@ jobs:
       - name: Check whether election day has passed
         id: gate
         run: |
-          election_day="2026-09-11"
+          election_day="2026-09-13"
           today="$(date -u +%F)"
           if [[ "$today" > "$election_day" ]]; then
             echo "Election day ($election_day) has passed — skipping."

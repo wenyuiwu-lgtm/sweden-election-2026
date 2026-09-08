@@ -2,7 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-const ELECTION_DAY = new Date("2026-09-11T00:00:00Z").getTime();
+const ELECTION_DAY = new Date("2026-09-13T00:00:00Z").getTime();
 const TICK_MS = 30_000;
 
 // useSyncExternalStore requires getSnapshot to return the same value between
@@ -35,7 +35,7 @@ export function Countdown() {
     <div className="rounded-2xl border border-border bg-bg-elevated p-5 card-shadow flex items-center justify-between flex-wrap gap-4">
       <div>
         <div className="text-[11px] uppercase tracking-wide text-ink-faint mb-0.5">Election Day</div>
-        <div className="font-serif-display text-base font-semibold">11 September 2026</div>
+        <div className="font-serif-display text-base font-semibold">13 September 2026</div>
       </div>
       {now === null ? (
         <div className="h-12 w-56 rounded-full bg-bg-sunken animate-pulse" />

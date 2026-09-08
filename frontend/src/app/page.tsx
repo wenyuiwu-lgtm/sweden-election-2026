@@ -37,11 +37,11 @@ function formatCET(date: Date, options: Intl.DateTimeFormatOptions): string {
 
 const TOTAL_SEATS = 349;
 const MAJORITY = 175;
-const ELECTION_DAY = new Date("2026-09-11T00:00:00Z");
+const ELECTION_DAY = new Date("2026-09-13T00:00:00Z");
 
 // Matches .github/workflows/update-polls.yml: runs every Monday 06:00 UTC,
 // and stops entirely once the date passes this cutoff.
-const LAST_SCHEDULED_UPDATE_DATE = "2026-09-11";
+const LAST_SCHEDULED_UPDATE_DATE = "2026-09-13";
 
 function formatNextUpdate(now: Date): string | null {
   const day = now.getUTCDay(); // 0 = Sunday, 1 = Monday, ...
