@@ -2,7 +2,10 @@
 
 import { useSyncExternalStore } from "react";
 
-const ELECTION_DAY = new Date("2026-09-13T00:00:00Z").getTime();
+// Countdown target is polls closing — 23:59 CEST on election day — not
+// midnight at the start of it, so the countdown keeps ticking through
+// election day itself instead of flipping over at 02:00 CEST that morning.
+const ELECTION_DAY = new Date("2026-09-13T21:59:00Z").getTime();
 const TICK_MS = 30_000;
 
 // useSyncExternalStore requires getSnapshot to return the same value between
