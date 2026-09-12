@@ -1079,8 +1079,19 @@ function BlocCard({
 
 function SeatBar({ latest }: { latest: PollOfPollsOutput }) {
   const majorityPct = (MAJORITY / TOTAL_SEATS) * 100;
+  const INLINE_LABEL_MIN_PCT = 4.5;
+
+  let cumulativePct = 0;
+  const segments = SPECTRUM_ORDER.filter((p) => latest.parties[p].projected_seats > 0).map((code) => {
+    const seats = latest.parties[code].projected_seats;
+    const widthPct = (seats / TOTAL_SEATS) * 100;
+    const offsetPct = cumulativePct;
+    cumulativePct += widthPct;
+    return { code, seats, widthPct, offsetPct };
+  });
+
   return (
-    <div className="relative pt-5">
+    <div className="relative pt-5 pb-5">
       <span
         className="absolute top-0 -translate-x-1/2 whitespace-nowrap text-[10px] text-ink-faint"
         style={{ left: `${majorityPct}%` }}
@@ -1088,24 +1099,34 @@ function SeatBar({ latest }: { latest: PollOfPollsOutput }) {
         {MAJORITY} for majority
       </span>
       <div
-        className="absolute top-5 bottom-0 w-px bg-ink/50"
+        className="absolute top-5 bottom-5 w-px bg-ink/50"
         style={{ left: `${majorityPct}%` }}
       />
       <div className="flex w-full h-7 rounded-md overflow-hidden">
-        {SPECTRUM_ORDER.filter((p) => latest.parties[p].projected_seats > 0).map((code) => {
-          const seats = latest.parties[code].projected_seats;
-          return (
-            <div
-              key={code}
-              className="flex items-center justify-center text-[10px] font-semibold text-white/90 first:rounded-l-md last:rounded-r-md"
-              style={{ width: `${(seats / TOTAL_SEATS) * 100}%`, backgroundColor: PARTY_COLORS[code] }}
-              title={`${code}: ${seats} seats`}
-            >
-              {seats / TOTAL_SEATS > 0.045 ? code : ""}
-            </div>
-          );
-        })}
+        {segments.map(({ code, seats, widthPct }) => (
+          <div
+            key={code}
+            className="flex items-center justify-center text-[10px] font-semibold text-white/90 first:rounded-l-md last:rounded-r-md"
+            style={{ width: `${widthPct}%`, backgroundColor: PARTY_COLORS[code] }}
+            title={`${code}: ${seats} seats`}
+          >
+            {widthPct > INLINE_LABEL_MIN_PCT ? code : ""}
+          </div>
+        ))}
       </div>
+      {/* Segments too narrow for an inline label get a small callout below the bar instead. */}
+      {segments
+        .filter((s) => s.widthPct <= INLINE_LABEL_MIN_PCT)
+        .map((s) => (
+          <div
+            key={s.code}
+            className="absolute top-12 flex -translate-x-1/2 flex-col items-center"
+            style={{ left: `${s.offsetPct + s.widthPct / 2}%` }}
+          >
+            <div className="h-1.5 w-px bg-ink-faint" />
+            <span className="mt-0.5 whitespace-nowrap text-[9px] font-semibold text-ink-muted">{s.code}</span>
+          </div>
+        ))}
     </div>
   );
 }
