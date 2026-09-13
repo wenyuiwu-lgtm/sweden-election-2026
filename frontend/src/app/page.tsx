@@ -400,7 +400,7 @@ export default function Home() {
         <h2 className="font-serif-display text-lg font-semibold mb-4">Outcome Prediction</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-0 sm:divide-x sm:divide-border">
           <BlocCard
-            label="Opposition"
+            label="Red-Green Bloc"
             parties="S · V · MP · C"
             seats={red_green_bloc.projected_seats}
             support={red_green_bloc.combined_support}
@@ -418,7 +418,7 @@ export default function Home() {
         <div className="mt-5 pt-4 border-t border-border flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
           <span className="text-ink-faint">{CURRENT_ELECTION_YEAR} election result<sup>*</sup>:</span>
           <span className="text-ink-muted">
-            Opposition <strong className="text-ink font-semibold">{currentRedGreenSeats}</strong> · Tidö parties{" "}
+            Red-Green Bloc <strong className="text-ink font-semibold">{currentRedGreenSeats}</strong> · Tidö parties{" "}
             <strong className="text-ink font-semibold">{currentTidoSeats}</strong>
           </span>
         </div>
