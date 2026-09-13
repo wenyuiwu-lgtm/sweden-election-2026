@@ -52,7 +52,7 @@ export function Countdown() {
 function CountdownReadout({ msRemaining }: { msRemaining: number }) {
   if (msRemaining <= 0) {
     return (
-      <div className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white">Voting is underway</div>
+      <div className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white">Election has ended</div>
     );
   }
 
