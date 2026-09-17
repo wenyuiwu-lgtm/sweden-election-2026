@@ -11,7 +11,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Countdown } from "@/components/Countdown";
 import { Disclosure } from "@/components/Disclosure";
 import { MAX_POLLS_PER_INSTITUTION } from "@/lib/constants";
 import { PartyCode, PartyTrend, PollOfPollsOutput, PollSnapshot, PollsterGroup } from "@/lib/types";
@@ -37,10 +36,6 @@ function formatCET(date: Date, options: Intl.DateTimeFormatOptions): string {
 
 const TOTAL_SEATS = 349;
 const MAJORITY = 175;
-// Countdown target is polls closing at 20:00 CEST on election day, not
-// midnight at the start of it, so the countdown keeps ticking through
-// election day itself instead of flipping over at 02:00 CEST that morning.
-const ELECTION_DAY = new Date("2026-09-13T18:00:00Z");
 
 // Matches .github/workflows/update-polls.yml: runs every Monday 06:00 UTC,
 // and stops entirely once the date passes this cutoff.
@@ -105,6 +100,34 @@ const CURRENT_SUPPORT: Record<PartyCode, number> = {
   OTH: 1.54,
 };
 
+// 2026 Riksdag election result — preliminary count, all 6,626 districts
+// counted (Valmyndigheten, resultat.val.se/val2026/RD, published 17 Sept
+// 2026). The County Administrative Boards' certified final recount is
+// expected the weekend of 19–20 Sept and could still shift these slightly.
+const OFFICIAL_2026_RESULT_IS_FINAL = false;
+const OFFICIAL_2026_SEATS: Record<PartyCode, number> = {
+  S: 99,
+  SD: 62,
+  M: 70,
+  V: 30,
+  C: 25,
+  KD: 22,
+  MP: 22,
+  L: 19,
+  OTH: 0,
+};
+const OFFICIAL_2026_SUPPORT: Record<PartyCode, number> = {
+  S: 28.01,
+  SD: 17.47,
+  M: 19.85,
+  V: 8.40,
+  C: 7.05,
+  KD: 6.17,
+  MP: 6.13,
+  L: 5.34,
+  OTH: 1.58,
+};
+
 export default function Home() {
   const [latest, setLatest] = useState<PollOfPollsOutput | null>(null);
   const [trends, setTrends] = useState<PartyTrend[]>([]);
@@ -118,7 +141,7 @@ export default function Home() {
   const [selectedSnapshotId, setSelectedSnapshotId] = useState<number | null>(null);
   const [snapshotMenuOpen, setSnapshotMenuOpen] = useState(false);
   const [seatLogOpen, setSeatLogOpen] = useState(false);
-  const [compareTargetId, setCompareTargetId] = useState<number | "2022">("2022");
+  const [compareTargetId, setCompareTargetId] = useState<number | "2022" | "official">("official");
   const [compareMenuOpen, setCompareMenuOpen] = useState(false);
   const [compareBaseMenuOpen, setCompareBaseMenuOpen] = useState(false);
 
@@ -162,6 +185,15 @@ export default function Home() {
   const { red_green_bloc, tido_bloc } = latest.bloc_summary;
   const currentRedGreenSeats = red_green_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
   const currentTidoSeats = tido_bloc.parties.reduce((sum, p) => sum + CURRENT_SEATS[p], 0);
+  const officialRedGreenSeats = red_green_bloc.parties.reduce((sum, p) => sum + OFFICIAL_2026_SEATS[p], 0);
+  const officialTidoSeats = tido_bloc.parties.reduce((sum, p) => sum + OFFICIAL_2026_SEATS[p], 0);
+  const officialRedGreenSupport = red_green_bloc.parties.reduce((sum, p) => sum + OFFICIAL_2026_SUPPORT[p], 0);
+  const officialTidoSupport = tido_bloc.parties.reduce((sum, p) => sum + OFFICIAL_2026_SUPPORT[p], 0);
+  const finalPredictionDateLabel = new Date(latest.updated_at).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
   const sortedHistory = [...history].sort((a, b) => a.calculation_date.localeCompare(b.calculation_date));
   const latestSnapshotId = sortedHistory.length > 0 ? sortedHistory[sortedHistory.length - 1].id : null;
   const effectiveSnapshotId = selectedSnapshotId ?? latestSnapshotId;
@@ -174,21 +206,37 @@ export default function Home() {
   const updateNoteLabel = activeSnapshot.update_note
     ? `${activeSnapshotDateLabel}${effectiveSnapshotId === latestSnapshotId ? " (latest)" : ""}. ${activeSnapshot.update_note}`
     : null;
-  // What the "Compare" table measures itself against — either the fixed 2022
-  // baseline, or another 2026 snapshot the reader picked. Falls back to 2022
-  // if the chosen target snapshot is no longer distinct from the primary one
-  // (e.g. the primary date was changed to match it).
+  // What the "Compare" table measures itself against — the 2026 official
+  // result, the fixed 2022 baseline, or another 2026 snapshot the reader
+  // picked. Falls back to the official result if the chosen target snapshot
+  // is no longer distinct from the primary one (e.g. the primary date was
+  // changed to match it) — comparing a date to itself isn't meaningful.
+  const compareTargetResolved: "2022" | "official" | number =
+    typeof compareTargetId === "number" && compareTargetId === effectiveSnapshotId ? "official" : compareTargetId;
   const compareSnapshot =
-    compareTargetId !== "2022" && compareTargetId !== effectiveSnapshotId
-      ? sortedHistory.find((s) => s.id === compareTargetId) ?? null
+    typeof compareTargetResolved === "number"
+      ? sortedHistory.find((s) => s.id === compareTargetResolved) ?? null
       : null;
-  const usingElection2022 = !compareSnapshot;
-  const compareLabel = compareSnapshot ? formatSnapshotDate(compareSnapshot.calculation_date) : `${CURRENT_ELECTION_YEAR}`;
-  const comparePillLabel = compareSnapshot ? compareLabel : "'22";
+  const usingOfficialResult = compareTargetResolved === "official";
+  const usingElection2022 = compareTargetResolved === "2022";
+  const compareLabel = compareSnapshot
+    ? formatSnapshotDate(compareSnapshot.calculation_date)
+    : usingOfficialResult
+    ? "2026 Official Result"
+    : `${CURRENT_ELECTION_YEAR}`;
+  const comparePillLabel = compareSnapshot ? compareLabel : usingOfficialResult ? "Official" : "'22";
   const compareSupport = (code: PartyCode) =>
-    compareSnapshot ? compareSnapshot.parties[code].weighted_support : CURRENT_SUPPORT[code];
+    compareSnapshot
+      ? compareSnapshot.parties[code].weighted_support
+      : usingOfficialResult
+      ? OFFICIAL_2026_SUPPORT[code]
+      : CURRENT_SUPPORT[code];
   const compareSeats = (code: PartyCode) =>
-    compareSnapshot ? compareSnapshot.parties[code].projected_seats : CURRENT_SEATS[code];
+    compareSnapshot
+      ? compareSnapshot.parties[code].projected_seats
+      : usingOfficialResult
+      ? OFFICIAL_2026_SEATS[code]
+      : CURRENT_SEATS[code];
   const displaySupport = (code: PartyCode) =>
     tableView === "2022" ? CURRENT_SUPPORT[code] : activeSnapshot.parties[code].weighted_support;
   const displaySeats = (code: PartyCode) =>
@@ -221,7 +269,48 @@ export default function Home() {
             )}
           </div>
         </div>
-        <Countdown />
+      </section>
+
+      {/* Election Result vs. final prediction */}
+      <section className="rounded-2xl border border-border bg-bg-elevated p-5 card-shadow">
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-3">
+          <h2 className="font-serif-display text-lg font-semibold">2026 Election Result</h2>
+          <span className="inline-flex items-center rounded-full bg-bg-sunken px-2.5 py-1 text-[11px] font-medium text-ink-muted">
+            {OFFICIAL_2026_RESULT_IS_FINAL ? "Certified final result" : "Preliminary count"}
+          </span>
+        </div>
+        <p className="mb-4 text-[12px] text-ink-faint">
+          {OFFICIAL_2026_RESULT_IS_FINAL
+            ? "Certified final result from Valmyndigheten."
+            : "All 6,626 districts counted (Valmyndigheten, 17 Sept 2026). The County Administrative Boards’ certified final recount is expected the weekend of 19–20 September and could still shift these numbers slightly."}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-0 sm:divide-x sm:divide-border">
+          <BlocCard
+            label="Red-Green Bloc"
+            parties="S · V · MP · C"
+            seats={officialRedGreenSeats}
+            support={officialRedGreenSupport}
+            color={PARTY_COLORS.S}
+            comparison={{
+              label: `Our final prediction (${finalPredictionDateLabel})`,
+              seats: red_green_bloc.projected_seats,
+              support: red_green_bloc.combined_support,
+            }}
+          />
+          <BlocCard
+            label="Tidö Parties"
+            parties="M · SD · KD · L"
+            seats={officialTidoSeats}
+            support={officialTidoSupport}
+            color={PARTY_COLORS.M}
+            className="sm:pl-6"
+            comparison={{
+              label: `Our final prediction (${finalPredictionDateLabel})`,
+              seats: tido_bloc.projected_seats,
+              support: tido_bloc.combined_support,
+            }}
+          />
+        </div>
       </section>
 
       {/* Why a Poll of Polls */}
@@ -710,6 +799,28 @@ export default function Home() {
                     <button
                       type="button"
                       role="option"
+                      aria-selected={usingOfficialResult}
+                      onClick={() => {
+                        setCompareTargetId("official");
+                        setCompareMenuOpen(false);
+                      }}
+                      className="flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[13px] hover:bg-bg-sunken"
+                    >
+                      <span className={usingOfficialResult ? "font-semibold text-ink" : "text-ink-muted"}>
+                        2026 Official Result
+                        {!OFFICIAL_2026_RESULT_IS_FINAL && (
+                          <span className="ml-1.5 text-[10px] font-normal text-ink-faint">preliminary</span>
+                        )}
+                      </span>
+                      {usingOfficialResult && (
+                        <svg className="h-3.5 w-3.5 shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      role="option"
                       aria-selected={usingElection2022}
                       onClick={() => {
                         setCompareTargetId("2022");
@@ -730,7 +841,7 @@ export default function Home() {
                       .reverse()
                       .filter((snap) => snap.id !== effectiveSnapshotId)
                       .map((snap) => {
-                        const isSelected = !usingElection2022 && snap.id === compareTargetId;
+                        const isSelected = compareSnapshot?.id === snap.id;
                         return (
                           <button
                             key={snap.id}
@@ -856,7 +967,13 @@ export default function Home() {
         )}
         {tableView === "compare" && (
           <p className="px-5 py-3 text-[11px] leading-relaxed text-ink-faint border-t border-border">
-            {usingElection2022 ? (
+            {usingOfficialResult ? (
+              <>
+                Bold figures are the {activeSnapshotDateLabel} weighted projection; the smaller line below each is
+                the actual 2026 election result{" "}
+                {OFFICIAL_2026_RESULT_IS_FINAL ? "" : "— a preliminary count, pending the County Boards’ certified final recount"}.
+              </>
+            ) : usingElection2022 ? (
               <>
                 Bold figures are the {activeSnapshotDateLabel} weighted projection; the smaller line below each is
                 the actual {CURRENT_ELECTION_YEAR} election-night result — not today&rsquo;s live party-group count,
@@ -1048,6 +1165,7 @@ function BlocCard({
   support,
   color,
   className = "",
+  comparison,
 }: {
   label: string;
   parties: string;
@@ -1055,6 +1173,7 @@ function BlocCard({
   support: number;
   color: string;
   className?: string;
+  comparison?: { label: string; seats: number; support: number };
 }) {
   const majority = seats >= MAJORITY;
   return (
@@ -1073,6 +1192,15 @@ function BlocCard({
       <div className={`mt-1.5 text-[12px] font-medium ${majority ? "text-[var(--positive)]" : "text-ink-faint"}`}>
         {majority ? "Majority" : `${MAJORITY - seats} seats short of majority`}
       </div>
+      {comparison && (
+        <div className="mt-3 flex items-center justify-between border-t border-border pt-3 text-[11px]">
+          <span className="text-ink-faint">{comparison.label}</span>
+          <span className="flex items-center gap-1.5 text-ink-muted">
+            {comparison.seats} seats · {comparison.support.toFixed(1)}%
+            <DeltaBadge value={seats - comparison.seats} />
+          </span>
+        </div>
+      )}
     </div>
   );
 }
