@@ -505,6 +505,17 @@ export default function Home() {
           />
         </div>
         <div className="mt-5 pt-4 border-t border-border flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
+          <span className="text-ink-faint">
+            vs Election Result{!OFFICIAL_2026_RESULT_IS_FINAL && " (preliminary)"}:
+          </span>
+          <span className="text-ink-muted flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            Red-Green Bloc <strong className="text-ink font-semibold">{officialRedGreenSeats}</strong>
+            <DeltaBadge value={red_green_bloc.projected_seats - officialRedGreenSeats} />
+            · Tidö parties <strong className="text-ink font-semibold">{officialTidoSeats}</strong>
+            <DeltaBadge value={tido_bloc.projected_seats - officialTidoSeats} />
+          </span>
+        </div>
+        <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
           <span className="text-ink-faint">{CURRENT_ELECTION_YEAR} election result<sup>*</sup>:</span>
           <span className="text-ink-muted">
             Red-Green Bloc <strong className="text-ink font-semibold">{currentRedGreenSeats}</strong> · Tidö parties{" "}
@@ -611,6 +622,17 @@ export default function Home() {
         <div className="mt-6">
           <SeatBar latest={activeSnapshot} />
           <Legend2 />
+        </div>
+        <div className="mt-4 pt-4 border-t border-border flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px]">
+          <span className="text-ink-faint">
+            vs Election Result{!OFFICIAL_2026_RESULT_IS_FINAL && " (preliminary)"}:
+          </span>
+          <span className="text-ink-muted flex flex-wrap items-center gap-x-1.5 gap-y-1">
+            Red-Green Bloc <strong className="text-ink font-semibold">{officialRedGreenSeats}</strong>
+            <DeltaBadge value={activeSnapshot.bloc_summary.red_green_bloc.projected_seats - officialRedGreenSeats} />
+            · Tidö <strong className="text-ink font-semibold">{officialTidoSeats}</strong>
+            <DeltaBadge value={activeSnapshot.bloc_summary.tido_bloc.projected_seats - officialTidoSeats} />
+          </span>
         </div>
       </section>
 
